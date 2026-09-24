@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:biosolar-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+
+biosolar:
+  simulacao:
+    # O ciclo automatico e acionado manualmente nos testes (SimuladorFazenda.executarCiclo)
+    habilitada: false
