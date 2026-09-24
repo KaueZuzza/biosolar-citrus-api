@@ -1,0 +1,133 @@
+### BioSolar Citrus API: exemplos de requisições
+# Use com a extensão "REST Client" do VS Code (botão "Send Request") ou com o IntelliJ HTTP Client.
+# A API precisa estar rodando: powershell -ExecutionPolicy Bypass -File scripts\iniciar.ps1
+
+@api = http://localhost:8080
+
+### ============================ OBRIGATÓRIOS ============================
+
+### Telemetria completa (reservatório, talhões, bombas, decisão, alertas, eventos)
+GET {{api}}/telemetria
+
+### Acionamento manual: ligar o aspersor do Talhão A
+# 200 = executado · 409 = recusado por regra de segurança (ex.: BLOQUEIO_DE_EMERGENCIA)
+POST {{api}}/bombas/acionar
+Content-Type: application/json
+
+{
+  "talhaoId": "A",
+  "ligado": true
+}
+
+### Acionamento manual: desligar o aspersor do Talhão A
+POST {{api}}/bombas/acionar
+Content-Type: application/json
+
+{
+  "talhaoId": "A",
+  "ligado": false
+}
+
+### ============================ CONSULTAS ============================
+
+### Estado das 4 motobombas
+GET {{api}}/bombas
+
+### Resumo operacional (inclui texto para leitura em voz)
+GET {{api}}/status
+
+### Histórico de eventos (mais recentes primeiro)
+GET {{api}}/eventos?limite=20
+
+### Série temporal para os gráficos
+GET {{api}}/historico?limite=60
+
+### Indicadores (índice, autonomia, acionamentos por talhão, energia)
+GET {{api}}/indicadores
+
+### Saúde da API, do banco, do simulador e dos dispositivos
+GET {{api}}/saude
+
+### Relatório operacional (JSON)
+GET {{api}}/relatorio
+
+### Relatório operacional (CSV)
+GET {{api}}/relatorio/csv
+
+### ============================ DEMONSTRAÇÃO (/simulacao/*) ============================
+# Existem apenas para a apresentação: alteram CONDIÇÕES FÍSICAS no servidor e as regras
+# do backend reagem. Desative com BIOSOLAR_CONTROLES_DEMO=false (retornam 403).
+
+### 0) Restaurar o cenário inicial (reservatório 67%, histórico limpo)
+POST {{api}}/simulacao/restaurar
+
+### 1) Reduzir a umidade do Talhão C (31% -> 24%): irrigação crítica automática (P2)
+POST {{api}}/simulacao/umidade
+Content-Type: application/json
+
+{
+  "talhaoId": "C",
+  "delta": -7
+}
+
+### 2) Tentar desligar o Talhão C durante a irrigação crítica: 409 IRRIGACAO_CRITICA_EM_ANDAMENTO
+POST {{api}}/bombas/acionar
+Content-Type: application/json
+
+{
+  "talhaoId": "C",
+  "ligado": false
+}
+
+### 3) Reduzir o reservatório em 5 pontos percentuais
+POST {{api}}/simulacao/reservatorio
+Content-Type: application/json
+
+{
+  "delta": -5
+}
+
+### 4) Emergência hídrica: reservatório em 12% e bloqueio de emergência (P1)
+POST {{api}}/simulacao/emergencia
+
+### 5) Tentar ligar uma bomba na emergência: 409 BLOQUEIO_DE_EMERGENCIA
+POST {{api}}/bombas/acionar
+Content-Type: application/json
+
+{
+  "talhaoId": "B",
+  "ligado": true
+}
+
+### Acelerar o tempo da fazenda (1 a 60x)
+POST {{api}}/simulacao/velocidade
+Content-Type: application/json
+
+{
+  "fator": 15
+}
+
+### Pausar / retomar o tempo (as regras de segurança continuam ativas)
+POST {{api}}/simulacao/pausa
+Content-Type: application/json
+
+{
+  "pausada": true
+}
+
+### ============================ ERROS ESPERADOS ============================
+
+### 400: corpo inválido
+POST {{api}}/bombas/acionar
+Content-Type: application/json
+
+{}
+
+### 404: talhão inexistente
+POST {{api}}/bombas/acionar
+Content-Type: application/json
+
+{
+  "talhaoId": "Z",
+  "ligado": true
+}

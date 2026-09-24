@@ -134,6 +134,16 @@ Outros motivos de recusa: `IRRIGACAO_CRITICA_EM_ANDAMENTO` (tentar desligar um t
 
 Exemplo do regulamento: *Talhão A = 12% e Reservatório = 10%* ⇒ ❌ o Talhão A **não** irriga, 🚨 o bloqueio fica ativo e todas as bombas ficam desligadas. O evento `IRRIGACAO_BLOQUEADA` explica o motivo.
 
+> **Decisão técnica adicional (não é requisito original do desafio): histerese de rearme**
+>
+> - Limite crítico: **15%** (regra do regulamento, cumprida integralmente: abaixo de 15% todas as bombas são desligadas).
+> - Limite de rearme: **20%**.
+> - O limite de rearme evita ciclos repetitivos de bloqueio e reativação próximos ao limite crítico.
+>
+> Na prática, se o reservatório subir para 16–19% depois de uma emergência, o bloqueio continua ativo e o
+> Motor de Decisão exibe "acima de 15%, mas ainda abaixo do nível de rearme (20%)". O valor fica em
+> `Reservatorio.limiteRearme`.
+
 O motor de regras roda **a cada minuto simulado**, mesmo com a simulação acelerada, e também logo após cada
 comando ou alteração de cenário.
 
@@ -166,54 +176,101 @@ O cenário inicial resulta em **81/100** (H = 67, S = 91, E = 100).
 - Usina fotovoltaica de **45 kWp**.
 - **Escala de tempo:** 1 s real = 1 min na fazenda (1×). O painel acelera para 5×, 15× ou 30×.
 
-## Como executar
+## Como executar em outro computador
 
-### Opção 1: script automático no Windows, sem administrador (recomendado)
+### Requisitos
 
-```powershell
-# 1. Prepara o ambiente uma única vez: JDK 21, Maven, PostgreSQL 17 e o banco "biosolar"
-#    (instalado em %LOCALAPPDATA%\BioSolarDev, fora do OneDrive)
-powershell -ExecutionPolicy Bypass -File scripts\setup-ambiente.ps1
+| Requisito | Observação |
+|---|---|
+| Windows 10/11 | Os scripts são PowerShell (já incluso no Windows) |
+| Java 21 (JDK) | Instalado automaticamente pelo `setup-ambiente.ps1`, ou use um JDK 21 próprio (`JAVA_HOME`) |
+| Maven | **Não precisa instalar**: o projeto usa o Maven Wrapper (`backend\mvnw.cmd`) |
+| PostgreSQL 17 | Instalado automaticamente pelo `setup-ambiente.ps1` (portátil), via Docker ou uma instalação já existente |
+| Git | Para clonar o repositório |
+| Navegador | Edge, Chrome ou Firefox atualizados |
+| Internet | Apenas na **primeira** execução (download do JDK, PostgreSQL e dependências Maven) e para o VLibras |
 
-# 2. Sobe o PostgreSQL local (se necessário) + API + dashboard
-powershell -ExecutionPolicy Bypass -File scripts\iniciar.ps1
-```
-
-Abra **http://localhost:8080**.
-
-### Opção 2: PostgreSQL via Docker
+### 1. Clonar e entrar
 
 ```bash
-docker compose up -d                 # banco biosolar / usuário biosolar / senha biosolar
-cd backend && ./mvnw spring-boot:run # Windows: mvnw.cmd spring-boot:run
+git clone URL_DO_REPOSITORIO biosolar-citrus
+cd biosolar-citrus
 ```
 
-### Opção 3: PostgreSQL já instalado
+### 2. Preparar o ambiente (uma única vez)
 
-Crie o banco e o usuário, e informe as variáveis de ambiente se forem diferentes do padrão:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup-ambiente.ps1
+```
+
+Isso instala, **sem precisar de administrador**, o JDK 21, o Maven e o PostgreSQL 17 em
+`%LOCALAPPDATA%\BioSolarDev` (fora da pasta do projeto) e cria o banco:
+
+| Item | Valor (desenvolvimento local) |
+|---|---|
+| Host / porta | `localhost:5432` |
+| Banco | `biosolar` |
+| Usuário / senha da aplicação | `biosolar` / `biosolar` |
+| Superusuário do cluster portátil | `postgres` / `postgres` |
+
+> Se o notebook **já tiver um PostgreSQL** na porta 5432, o script avisa e para. Nesse caso, crie o banco
+> no PostgreSQL existente (seção "Banco de dados") **ou** use outra porta: copie `.env.example` para `.env`,
+> defina `BIOSOLAR_DB_URL=jdbc:postgresql://localhost:5433/biosolar` e rode o script de novo.
+
+### 3. Iniciar
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\iniciar.ps1
+```
+
+O script sobe o PostgreSQL portátil (se estiver parado) e a API. Na **primeira execução**, o Maven Wrapper
+baixa o Maven e as dependências (alguns minutos). O **Flyway cria as tabelas** e o backend **cria os dados
+iniciais** (4 talhões, reservatório em 67% e estado do simulador) automaticamente. Nada depende do banco
+de outro computador.
+
+> Dica: para usar `.\scripts\iniciar.ps1` diretamente (sem `powershell -ExecutionPolicy Bypass -File`),
+> libere scripts locais uma vez: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
+### 4. Abrir e verificar
+
+| O quê | Endereço |
+|---|---|
+| **Dashboard** (servido pela própria API) | http://localhost:8080 |
+| Telemetria | http://localhost:8080/telemetria |
+| Saúde (API, banco, simulador) | http://localhost:8080/saude, que deve mostrar `"status":"UP"` e `"banco":{"status":"UP"...}` |
+| Todos os endpoints | arquivo [`api.http`](api.http) (VS Code: extensão *REST Client*) |
+
+Alternativas para o frontend: abrir `frontend/index.html` com o Live Server (porta 5500) ou dar duplo clique
+no arquivo. Nos dois casos, a API em `http://localhost:8080` precisa estar rodando.
+
+### Banco de dados
+
+**Opção A (padrão):** PostgreSQL portátil criado pelo `setup-ambiente.ps1`, descrito acima.
+
+**Opção B (Docker):**
+
+```powershell
+docker compose up -d        # cria banco biosolar / usuário biosolar / senha biosolar na porta 5432
+cd backend
+.\mvnw.cmd spring-boot:run
+```
+
+**Opção C (PostgreSQL já instalado):** crie o usuário e o banco (psql ou pgAdmin):
 
 ```sql
 CREATE ROLE biosolar LOGIN PASSWORD 'biosolar';
 CREATE DATABASE biosolar OWNER biosolar;
 ```
 
-| Variável | Padrão |
-|---|---|
-| `BIOSOLAR_DB_URL` | `jdbc:postgresql://localhost:5432/biosolar` |
-| `BIOSOLAR_DB_USUARIO` / `BIOSOLAR_DB_SENHA` | `biosolar` / `biosolar` |
-| `BIOSOLAR_CORS_ORIGENS` | `*` (lista separada por vírgula) |
-| `BIOSOLAR_CONTROLES_DEMO` | `true` (painel de simulação) |
-| `PORT` | `8080` |
+Depois rode `.\scripts\iniciar.ps1`. Se usar outra porta, usuário ou senha, informe no `.env` (modelo em `.env.example`).
 
-O **Flyway** cria as tabelas automaticamente na primeira execução.
-
-### Plano B: sem PostgreSQL (contingência para a apresentação)
+**Plano B (sem PostgreSQL, contingência na apresentação):**
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\iniciar.ps1 -H2
+powershell -ExecutionPolicy Bypass -File .\scripts\iniciar.ps1 -H2
 ```
 
-Usa H2 em arquivo (`backend/data/`), ainda persistido **no servidor**.
+Usa H2 em arquivo (`backend/data/`, fora do Git), ainda persistido **no servidor**.
 
 ### Testes
 
@@ -222,8 +279,47 @@ cd backend
 .\mvnw.cmd test
 ```
 
-17 testes: os 5 exigidos pelo regulamento, mais rearme, prioridade P2 > P4, fim da irrigação no alvo,
-balanço hídrico, índice e testes ponta a ponta da API (MockMvc).
+19 testes: os 5 exigidos pelo regulamento, mais rearme, prioridade P2 > P4, fim da irrigação no alvo,
+balanço hídrico, índice, CORS, retenção e testes ponta a ponta da API (MockMvc).
+
+## Migração para outro computador
+
+1. **Clonar:** `git clone URL_DO_REPOSITORIO biosolar-citrus`, depois `cd biosolar-citrus`.
+2. **Instalar requisitos:** Git e navegador. O resto vem do passo 3.
+3. **Configurar o banco:** `powershell -ExecutionPolicy Bypass -File .\scripts\setup-ambiente.ps1` (ou as opções B/C acima).
+4. **Executar:** `powershell -ExecutionPolicy Bypass -File .\scripts\iniciar.ps1`.
+5. **Verificar a API:** http://localhost:8080/saude, que deve mostrar `UP` no banco e no simulador.
+6. **Abrir o dashboard:** http://localhost:8080, e antes da apresentação clicar em **↺ Restaurar cenário**.
+
+**O que NÃO é transferido pelo Git** (e não precisa ser):
+
+| Item | Por quê |
+|---|---|
+| Banco de dados físico (`%LOCALAPPDATA%\BioSolarDev\pgdata`, `backend/data/`) | É recriado: Flyway (tabelas) e backend (dados iniciais) |
+| JDK, Maven e PostgreSQL portáteis | Reinstalados pelo `setup-ambiente.ps1` |
+| `backend/target/` | Gerado pelo build |
+| `.env` | Configuração local; o modelo versionado é o `.env.example` |
+| Logs, temporários e configurações de IDE | Específicos de cada computador |
+
+## Segurança e configuração
+
+- **Credenciais:** `biosolar`/`biosolar` e `postgres`/`postgres` são **credenciais de desenvolvimento local**,
+  não senhas reais. Para outros valores, use o `.env` (nunca versionado). Não há tokens nem chaves no projeto.
+- **CORS:** por padrão aceita `http://localhost:*`, `http://127.0.0.1:*` (Live Server) e `null` (arquivo aberto
+  com duplo clique). Origens externas são recusadas. Configure com `BIOSOLAR_CORS_ORIGENS`.
+- **Endpoints de demonstração (`/simulacao/*`):** existem apenas para a apresentação (alteram condições físicas
+  no servidor, e o motor de regras reage). Para desativá-los: `BIOSOLAR_CONTROLES_DEMO=false` (passam a responder `403`).
+- **Validação:** entradas validadas (`@Valid`) e respostas padronizadas (`400`, `403`, `404`, `409`, `500`).
+- **Retenção:** leituras de telemetria (gráficos) com mais de 24 h são removidas automaticamente; o **histórico de eventos é mantido**.
+
+| Variável (`.env`) | Padrão |
+|---|---|
+| `BIOSOLAR_DB_URL` | `jdbc:postgresql://localhost:5432/biosolar` |
+| `BIOSOLAR_DB_USUARIO` / `BIOSOLAR_DB_SENHA` | `biosolar` / `biosolar` |
+| `BIOSOLAR_PG_SUPER_SENHA` | `postgres` (apenas o cluster portátil) |
+| `BIOSOLAR_CORS_ORIGENS` | `http://localhost:[*],http://127.0.0.1:[*],null` |
+| `BIOSOLAR_CONTROLES_DEMO` | `true` |
+| `PORT` | `8080` |
 
 | Teste | Cenário | Resultado esperado |
 |---|---|---|
@@ -241,8 +337,8 @@ Use o **🎬 Painel de Simulação** do dashboard. Antes de apresentar, clique e
 2. **Simulação**: selecione *Talhão C* e clique em **↓ Reduzir 5%** duas vezes (ou acelere para 15×).
 3. **Evento crítico**: o Talhão C fica abaixo de 25% e o mapa fica 🔴.
 4. **Automação**: o **backend** liga o aspersor (P2). O Motor de Decisão explica o quê, onde, por quê e o impacto.
-5. **Reservatório**: clique em **↓ Reduzir 10%** algumas vezes (o alerta de atenção aparece em 30%).
-6. **Emergência**: clique em **🚨 Simular emergência** (ou continue reduzindo até < 15%).
+5. **Reservatório**: clique em **↓ Reduzir 10%** cinco vezes (≈ 17%; o alerta de atenção aparece em 30%).
+6. **Emergência**: clique em **↓ Reduzir 5%** (≈ 12%, abaixo de 15%) ou em **🚨 Simular emergência**.
 7. **Bloqueio**: o backend desliga **todas** as bombas e o status passa para 🚨 EMERGÊNCIA.
 8. **Tentativa manual**: em *Controle dos Aspersores*, clique em **Ligar**.
 9. **O sistema recusa**: aparece **🚨 AÇÃO BLOQUEADA** com a mensagem do servidor (HTTP 409).
@@ -298,5 +394,7 @@ frontend/
     ├── config.js
     └── app.js
 scripts/              setup-ambiente.ps1 · iniciar.ps1
+api.http              exemplos de todas as requisições (REST Client / IntelliJ)
+.env.example          modelo das variáveis de ambiente (o .env não é versionado)
 docker-compose.yml    PostgreSQL alternativo via Docker
 ```
