@@ -2,10 +2,13 @@
 BS.componentes.painelSimulacao = (function () {
   var pausada = false;
 
-  async function executar(promessa, botao) {
+  /** Recebe uma função que cria a requisição: com o botão ocupado, cliques repetidos são ignorados
+   *  (um duplo clique em "Reduzir 10%" não pode aplicar −20%). */
+  async function executar(requisicao, botao) {
+    if (botao && botao.getAttribute('aria-busy') === 'true') return;
     if (botao) botao.setAttribute('aria-busy', 'true');
     try {
-      var r = await promessa;
+      var r = await requisicao();
       var d = r.dados || {};
       if (r.ok) BS.toast({ severidade: 'INFO', icone: '🎬', titulo: 'Simulação', descricao: ' ' + (d.mensagem || 'Comando aplicado.') });
       else BS.toast({ severidade: 'ATENCAO', titulo: 'Simulação recusada', descricao: ' ' + (d.mensagem || ('HTTP ' + r.status)) });
@@ -21,23 +24,31 @@ BS.componentes.painelSimulacao = (function () {
     var s = BS.simulacaoService;
     document.getElementById('sim-velocidades').addEventListener('click', function (e) {
       var b = e.target.closest('[data-fator]');
-      if (b) executar(s.velocidade(Number(b.getAttribute('data-fator'))), b);
+      if (b) executar(function () { return s.velocidade(Number(b.getAttribute('data-fator'))); }, b);
     });
     document.getElementById('sim-pausa').addEventListener('click', function (e) {
-      executar(s.pausa(!pausada), e.currentTarget);
+      executar(function () { return s.pausa(!pausada); }, e.currentTarget);
     });
     BS.dom.$$('[data-umidade]').forEach(function (b) {
       b.addEventListener('click', function () {
-        executar(s.umidade(document.getElementById('sim-talhao').value, Number(b.getAttribute('data-umidade'))), b);
+        executar(function () {
+          return s.umidade(document.getElementById('sim-talhao').value, Number(b.getAttribute('data-umidade')));
+        }, b);
       });
     });
     BS.dom.$$('[data-reservatorio]').forEach(function (b) {
-      b.addEventListener('click', function () { executar(s.reservatorio(Number(b.getAttribute('data-reservatorio'))), b); });
+      b.addEventListener('click', function () {
+        executar(function () { return s.reservatorio(Number(b.getAttribute('data-reservatorio'))); }, b);
+      });
     });
-    document.getElementById('sim-emergencia').addEventListener('click', function (e) { executar(s.emergencia(), e.currentTarget); });
+    document.getElementById('sim-emergencia').addEventListener('click', function (e) {
+      executar(function () { return s.emergencia(); }, e.currentTarget);
+    });
     document.getElementById('sim-restaurar').addEventListener('click', function (e) {
+      var botao = e.currentTarget;
+      if (botao.getAttribute('aria-busy') === 'true') return;
       if (window.confirm('Restaurar o cenário de demonstração? O histórico de eventos e leituras será reiniciado no servidor.')) {
-        executar(s.restaurar(), e.currentTarget);
+        executar(function () { return s.restaurar(); }, botao);
       }
     });
 

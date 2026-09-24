@@ -3,6 +3,7 @@ package br.com.biosolar.citrus.service;
 import static br.com.biosolar.citrus.util.Formatador.pct;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -63,7 +64,18 @@ public class EstadoFazendaService {
     private final BioSolarProperties properties;
     private final Clock clock;
 
+    /**
+     * Apos uma falha de gravacao, novas tentativas sao adiadas por este intervalo. Sem isso, com o banco
+     * fora do ar cada ciclo seguraria o lock ate o timeout de conexao e o dashboard ficaria sem resposta.
+     */
+    static final Duration ESPERA_APOS_FALHA = Duration.ofSeconds(10);
+
     private Fazenda fazenda;
+
+    /** Incrementada a cada restauracao do cenario: leituras capturadas antes dela sao descartadas. */
+    private volatile long geracao;
+
+    private Instant proximaTentativaPersistencia;
 
     public EstadoFazendaService(TalhaoRepository talhaoRepository, ReservatorioRepository reservatorioRepository,
                                 EstadoSimulacaoRepository estadoRepository, EventoRepository eventoRepository,
@@ -152,6 +164,7 @@ public class EstadoFazendaService {
                 eventoRepository.deleteAllInBatch();
             });
             fazenda = CenarioInicial.criar(agora, relogioInicial());
+            geracao++;
             fazenda.registrarEvento(TipoEvento.SIMULACAO, Severidade.INFO, origem, null, null,
                     "Cenário de demonstração restaurado",
                     "Reservatório em " + pct(fazenda.getReservatorio().getNivel())
@@ -166,6 +179,43 @@ public class EstadoFazendaService {
         }
     }
 
+    public long getGeracao() {
+        return geracao;
+    }
+
+    /**
+     * Grava uma leitura do historico capturada na {@code geracaoDaLeitura}. E descartada se o cenario foi
+     * restaurado depois da captura (evita um ponto antigo no historico recem-limpo) ou se o banco estiver
+     * em espera apos uma falha (o historico e secundario; o estado operacional segue em memoria).
+     */
+    public void registrarLeitura(long geracaoDaLeitura, Runnable gravacao) {
+        lock.lock();
+        try {
+            if (geracaoDaLeitura != geracao || emEsperaAposFalha()) {
+                return;
+            }
+            try {
+                gravacao.run();
+            } catch (DataAccessException | TransactionException e) {
+                registrarFalha(e);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private boolean emEsperaAposFalha() {
+        return proximaTentativaPersistencia != null && clock.instant().isBefore(proximaTentativaPersistencia);
+    }
+
+    private void registrarFalha(RuntimeException e) {
+        if (proximaTentativaPersistencia == null) {
+            log.error("Falha ao gravar no banco (a automacao segue ativa em memoria; nova tentativa em {} s): {}",
+                    ESPERA_APOS_FALHA.toSeconds(), e.getMessage());
+        }
+        proximaTentativaPersistencia = clock.instant().plus(ESPERA_APOS_FALHA);
+    }
+
     private LocalDateTime relogioInicial() {
         return LocalDate.now(clock).atTime(properties.simulacao().horaInicial(), 0);
     }
@@ -173,8 +223,13 @@ public class EstadoFazendaService {
     /**
      * Grava o estado atual. Se o banco estiver indisponivel, a automacao continua operando em memoria
      * (as regras de seguranca nunca dependem do banco) e os eventos sao mantidos para a proxima gravacao.
+     * Apos uma falha, as tentativas ficam suspensas por {@link #ESPERA_APOS_FALHA}; como o estado completo e
+     * regravado a cada vez, nada se perde alem das leituras do historico desse intervalo.
      */
     private void persistir() {
+        if (emEsperaAposFalha()) {
+            return;
+        }
         List<Evento> eventos = fazenda.drenarEventos();
         try {
             transacao.executeWithoutResult(status -> {
@@ -183,11 +238,15 @@ public class EstadoFazendaService {
                 estadoRepository.save(fazenda.getSimulacao());
                 eventoRepository.saveAll(eventos);
             });
+            if (proximaTentativaPersistencia != null) {
+                proximaTentativaPersistencia = null;
+                log.info("Conexao com o banco restabelecida: estado e eventos pendentes gravados.");
+            }
             eventos.forEach(e -> log.info("[{}] {} | {}", e.getSeveridade(), e.getTitulo(), e.getDescricao()));
         } catch (DataAccessException | TransactionException e) {
-            eventos.forEach(ev -> fazenda.registrarEventoPendente(ev));
-            log.error("Falha ao persistir o estado da fazenda (a automacao segue ativa em memoria): {}",
-                    e.getMessage());
+            // Copias sem id: o original pode ter recebido o id do banco antes do rollback
+            eventos.forEach(ev -> fazenda.registrarEventoPendente(ev.copiaParaNovaTentativa()));
+            registrarFalha(e);
         }
     }
 }

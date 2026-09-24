@@ -12,6 +12,7 @@ BS.componentes.controleAspersores = (function () {
 
   /** Envia o comando ao servidor e mostra o resultado. Compartilhado com o mapa (detalhes do talhão). */
   async function acionar(talhaoId, ligar, botao) {
+    if (botao && botao.getAttribute('aria-busy') === 'true') return;  // ignora duplo clique
     if (botao) { botao.setAttribute('aria-busy', 'true'); }
     try {
       var r = await BS.bombaService.acionar(talhaoId, ligar);

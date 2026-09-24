@@ -7,6 +7,9 @@
   Tudo e instalado em %LOCALAPPDATA%\BioSolarDev (fora do OneDrive, para evitar
   sincronizacao de binarios e dos arquivos de dados do PostgreSQL).
   O script e idempotente: pode ser executado novamente sem reinstalar nada.
+  A porta do PostgreSQL e escolhida automaticamente (a do .env, senao 5432; se estiver ocupada
+  por outra instalacao do PostgreSQL, a proxima livre) e gravada no .env da raiz do projeto,
+  que e lido por iniciar.ps1 e pela API.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\setup-ambiente.ps1
@@ -14,31 +17,17 @@
 #>
 param(
     [string]$Destino = (Join-Path $env:LOCALAPPDATA 'BioSolarDev'),
-    [int]$PortaPostgres = 5432,
+    [int]$PortaPostgres = 0,   # 0 = automatico
     [switch]$SemPostgres
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'ambiente.ps1')
+$raiz = Split-Path -Parent $PSScriptRoot
+$arquivoEnv = Garantir-DotEnv $raiz
+Importar-DotEnv $arquivoEnv
 $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-# Variaveis opcionais do arquivo .env na raiz do projeto (modelo: .env.example)
-$raiz = Split-Path -Parent $PSScriptRoot
-$arquivoEnv = Join-Path $raiz '.env'
-if (Test-Path $arquivoEnv) {
-    Get-Content $arquivoEnv | ForEach-Object {
-        $linha = $_.Trim()
-        if ($linha -and -not $linha.StartsWith('#') -and $linha.Contains('=')) {
-            $partes = $linha.Split('=', 2)
-            Set-Item -Path ('Env:' + $partes[0].Trim()) -Value $partes[1].Trim()
-        }
-    }
-    Write-Host '[ok] Variaveis carregadas de .env'
-}
-# A porta do PostgreSQL acompanha BIOSOLAR_DB_URL, se definida
-if (-not $PSBoundParameters.ContainsKey('PortaPostgres') -and $env:BIOSOLAR_DB_URL -match 'localhost:(\d+)/') {
-    $PortaPostgres = [int]$Matches[1]
-}
 
 $JdkUrl      = 'https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jdk/hotspot/normal/eclipse?project=jdk'
 $MavenVersao = '3.9.11'
@@ -109,14 +98,19 @@ if (-not $SemPostgres) {
         if ($LASTEXITCODE -ne 0) { throw 'Falha no initdb' }
     }
 
-    & "$pgBin\pg_ctl.exe" -D $pgData status | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        & "$pgBin\pg_isready.exe" -h localhost -p $PortaPostgres | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            throw ("Ja existe outro PostgreSQL usando a porta $PortaPostgres neste computador. Opcoes: " +
-                "(1) crie o banco nele (README, secao 'Banco de dados') ou " +
-                "(2) use outra porta: copie .env.example para .env, defina " +
-                "BIOSOLAR_DB_URL=jdbc:postgresql://localhost:5433/biosolar e rode este script novamente.")
+    $portaAtiva = Obter-PortaClusterPortatil -PgBin $pgBin -PgData $pgData
+    if ($portaAtiva) {
+        $PortaPostgres = $portaAtiva
+        Write-Host "[ok] PostgreSQL do BioSolar ja esta rodando na porta $PortaPostgres"
+    } else {
+        if ($PortaPostgres -le 0) {
+            $urlEnv = Ler-UrlBanco $env:BIOSOLAR_DB_URL
+            $PortaPostgres = if ($urlEnv -and (Eh-HostLocal $urlEnv.Host)) { $urlEnv.Porta } else { 5432 }
+        }
+        if (Porta-EmUso $PortaPostgres) {
+            $livre = Obter-PortaLivre ($PortaPostgres + 1)
+            Write-Host "[i] Porta $PortaPostgres ocupada por outro servico (outra instalacao do PostgreSQL?): usando a porta $livre."
+            $PortaPostgres = $livre
         }
         Write-Host "[..] Iniciando PostgreSQL na porta $PortaPostgres ..."
         # Start-Process evita que o postgres herde o pipe de saida deste script (o que o travaria)
@@ -142,7 +136,12 @@ if (-not $SemPostgres) {
         & $psql[0] $psql[1..($psql.Length - 1)] -c "CREATE DATABASE $DbNome OWNER $DbUsuario ENCODING 'UTF8'" | Out-Host
     }
     Remove-Item Env:\PGPASSWORD
-    Write-Host "[ok] PostgreSQL pronto: jdbc:postgresql://localhost:$PortaPostgres/$DbNome (usuario $DbUsuario)"
+
+    # Grava a conexao no .env: iniciar.ps1 e a API passam a usar a porta correta sem configuracao manual
+    Definir-DotEnv $arquivoEnv 'BIOSOLAR_DB_URL' (Montar-UrlBanco 'localhost' $PortaPostgres $DbNome)
+    Definir-DotEnv $arquivoEnv 'BIOSOLAR_DB_USUARIO' $DbUsuario
+    Definir-DotEnv $arquivoEnv 'BIOSOLAR_DB_SENHA' $DbSenha
+    Write-Host "[ok] PostgreSQL pronto: jdbc:postgresql://localhost:$PortaPostgres/$DbNome (usuario $DbUsuario), gravado em .env"
 }
 
 Write-Host ''

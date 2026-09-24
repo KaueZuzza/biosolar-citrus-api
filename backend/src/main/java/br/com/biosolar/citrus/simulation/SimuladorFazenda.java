@@ -46,8 +46,10 @@ public class SimuladorFazenda {
 
     public void executarCiclo() {
         Instant agora = clock.instant();
+        long[] geracao = new long[1];
 
         AmostraTelemetria amostra = estado.executar(fazenda -> {
+            geracao[0] = estado.getGeracao();
             EstadoSimulacao sim = fazenda.getSimulacao();
             if (sim.isPausada()) {
                 // Mesmo pausada, as regras de seguranca continuam sendo aplicadas
@@ -70,7 +72,8 @@ public class SimuladorFazenda {
         });
 
         if (amostra != null) {
-            historicoService.registrar(amostra);
+            // Descartada se o cenario for restaurado entre a captura e a gravacao
+            estado.registrarLeitura(geracao[0], () -> historicoService.registrar(amostra));
         }
         ultimoCiclo = agora;
         ciclosExecutados.incrementAndGet();

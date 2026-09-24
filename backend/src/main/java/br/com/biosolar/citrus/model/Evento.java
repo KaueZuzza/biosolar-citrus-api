@@ -72,6 +72,15 @@ public class Evento {
         this.nivelReservatorio = nivelReservatorio;
     }
 
+    /**
+     * Copia sem id, para nova tentativa de gravacao. Apos uma transacao desfeita o objeto original pode ter
+     * ficado com o id gerado pelo banco (IDENTITY); regrava-lo faria um merge de uma linha inexistente.
+     */
+    public Evento copiaParaNovaTentativa() {
+        return new Evento(instante, horaSimulada, tipo, severidade, origem, regra, talhaoId, titulo, descricao,
+                nivelReservatorio);
+    }
+
     public Long getId() {
         return id;
     }

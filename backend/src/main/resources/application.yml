@@ -1,13 +1,19 @@
 spring:
   application:
     name: biosolar-citrus-api
+  config:
+    # Configuracao local da maquina (.env na raiz do projeto, ver .env.example). Variaveis de ambiente
+    # do sistema continuam tendo prioridade. "./" cobre a execucao a partir da raiz; "../", a partir de backend/.
+    import: "optional:file:./.env[.properties],optional:file:../.env[.properties]"
   datasource:
     url: ${BIOSOLAR_DB_URL:jdbc:postgresql://localhost:5432/biosolar}
     username: ${BIOSOLAR_DB_USUARIO:biosolar}
     password: ${BIOSOLAR_DB_SENHA:biosolar}
     hikari:
       maximum-pool-size: 10
-      connection-timeout: 5000
+      # Curto de proposito: com o banco fora do ar, cada tentativa de gravacao segura o lock do estado
+      # por no maximo este tempo (depois o EstadoFazendaService espera 10 s antes de tentar de novo)
+      connection-timeout: 3000
   jpa:
     # O schema e controlado exclusivamente pelo Flyway (src/main/resources/db/migration)
     hibernate:
