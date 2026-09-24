@@ -1,0 +1,34 @@
+# ---- Build (Maven) ----
+target/
+backend/target/
+.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*.log
+
+# ---- Banco de dados: NUNCA versionar dados físicos ----
+# (o schema é recriado pelo Flyway e os dados iniciais pelo backend)
+backend/data/
+pgdata/
+*.mv.db
+*.trace.db
+*.dump
+
+# ---- Variáveis de ambiente / credenciais locais ----
+.env
+.env.*
+!.env.example
+
+# ---- IDEs / sistema ----
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Node (não usado, mas evita envio acidental) ----
+node_modules/
+
+# ---- Logs e temporários ----
+*.log
+*.tmp
+*.bak

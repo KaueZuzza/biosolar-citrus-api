@@ -1,0 +1,17 @@
+# Normaliza finais de linha para o projeto funcionar igual em qualquer computador
+* text=auto
+
+# Scripts Windows com CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Scripts Unix com LF (Maven Wrapper para Linux/macOS)
+mvnw text eol=lf
+*.sh text eol=lf
+
+# Binários
+*.png binary
+*.jpg binary
+*.ico binary
+*.jar binary

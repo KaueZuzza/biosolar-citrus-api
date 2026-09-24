@@ -1,0 +1,23 @@
+# Alternativa ao scripts/setup-ambiente.ps1 para quem tem Docker:
+#   docker compose up -d
+# Cria o PostgreSQL com o mesmo banco/usuario esperados pela API (application.yml).
+services:
+  postgres:
+    image: postgres:17
+    container_name: biosolar-postgres
+    environment:
+      POSTGRES_DB: biosolar
+      POSTGRES_USER: biosolar
+      POSTGRES_PASSWORD: biosolar
+    ports:
+      - "5432:5432"
+    volumes:
+      - biosolar-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U biosolar -d biosolar"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  biosolar-pgdata:
