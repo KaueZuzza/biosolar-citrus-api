@@ -197,6 +197,11 @@ git clone URL_DO_REPOSITORIO biosolar-citrus
 cd biosolar-citrus
 ```
 
+> **Use uma pasta de caminho curto** (ex.: `C:\projetos\biosolar-citrus`) e, de preferência, **fora do OneDrive**.
+> O Windows limita caminhos a 260 caracteres, e os arquivos mais longos do projeto (incluindo os do build)
+> ocupam cerca de 100. Em pastas muito profundas o `git clone` falha com "Filename too long". Se precisar,
+> habilite caminhos longos no Git: `git config --global core.longpaths true`.
+
 ### 2. Preparar o ambiente (uma única vez)
 
 ```powershell
