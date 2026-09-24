@@ -5,8 +5,9 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * CORS: permite que o dashboard seja servido por outra origem (ex.: Live Server na porta 5500).
- * As origens sao configuraveis por {@code BIOSOLAR_CORS_ORIGENS}. A API nao usa cookies nem
+ * CORS: permite que o dashboard seja servido por outra origem local (ex.: Live Server na porta 5500)
+ * ou aberto como arquivo (origem "null"). Origens externas sao recusadas por padrao; configure
+ * {@code BIOSOLAR_CORS_ORIGENS} para publicar em outro dominio. A API nao usa cookies nem
  * credenciais, por isso {@code allowCredentials} permanece desativado.
  */
 @Configuration

@@ -1,15 +1,23 @@
 package br.com.biosolar.citrus;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +28,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import br.com.biosolar.citrus.service.HistoricoService;
 import br.com.biosolar.citrus.service.SimulacaoService;
+import br.com.biosolar.citrus.simulation.AmostraTelemetria;
 import br.com.biosolar.citrus.simulation.SimuladorFazenda;
 
 /** Testes ponta a ponta da API (H2 em memoria; ciclo automatico desligado para determinismo). */
@@ -37,6 +47,9 @@ class BioSolarApiIntegrationTest {
 
     @Autowired
     private SimuladorFazenda simulador;
+
+    @Autowired
+    private HistoricoService historicoService;
 
     @BeforeEach
     void restaurarCenario() {
@@ -128,6 +141,34 @@ class BioSolarApiIntegrationTest {
         mvc.perform(post("/bombas/acionar").contentType(MediaType.APPLICATION_JSON).content(acionar("Z", true)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.motivo", is("NAO_ENCONTRADO")));
+    }
+
+    @Test
+    void corsAceitaOrigensLocaisERecusaExternas() throws Exception {
+        for (String origem : new String[] {"http://localhost:5500", "http://127.0.0.1:5500", "null"}) {
+            mvc.perform(options("/bombas/acionar").header("Origin", origem)
+                            .header("Access-Control-Request-Method", "POST"))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("Access-Control-Allow-Origin", origem));
+        }
+        mvc.perform(options("/bombas/acionar").header("Origin", "https://site-externo.example")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void retencaoRemoveSomenteLeiturasAntigas() {
+        simulador.executarCiclo();
+        simulador.executarCiclo();
+        historicoService.registrar(new AmostraTelemetria(Instant.now().minus(Duration.ofHours(48)),
+                LocalDateTime.now(), 50, 40, 0, 0, 0, 70, false,
+                List.of(new AmostraTelemetria.Talhao("A", 50, false))));
+        int antes = historicoService.consultar(720).total();
+
+        int removidas = historicoService.aplicarRetencao();
+
+        assertThat(removidas).isEqualTo(1);
+        assertThat(historicoService.consultar(720).total()).isEqualTo(antes - 1);
     }
 
     @Test

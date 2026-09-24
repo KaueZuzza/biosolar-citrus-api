@@ -28,14 +28,19 @@ server:
 
 biosolar:
   cors:
-    # Lista separada por virgula. Ex.: http://localhost:5500,https://biosolar.exemplo.com
-    origens-permitidas: ${BIOSOLAR_CORS_ORIGENS:*}
+    # Padrao de DESENVOLVIMENTO: qualquer porta em localhost/127.0.0.1 (ex.: Live Server) e "null"
+    # (dashboard aberto como arquivo). O dashboard servido pela propria API (porta 8080) nao depende de CORS.
+    # Lista separada por virgula. Ex.: BIOSOLAR_CORS_ORIGENS=https://biosolar.exemplo.com
+    origens-permitidas: "${BIOSOLAR_CORS_ORIGENS:http://localhost:[*],http://127.0.0.1:[*],null}"
   simulacao:
     habilitada: true
     intervalo-ms: 1000
     # 1 ciclo (1 s real) = 1 minuto simulado; o fator de velocidade multiplica esse valor
     minutos-por-tick: 1
     registrar-leitura-a-cada-ticks: 2
+    # Leituras de telemetria (graficos) mais antigas que isso sao removidas; o historico de EVENTOS e mantido
+    retencao-leituras-horas: 24
+    # Endpoints /simulacao/* existem apenas para a demonstracao. Use false para desativa-los.
     controles-demonstracao: ${BIOSOLAR_CONTROLES_DEMO:true}
     hora-inicial: 9
 

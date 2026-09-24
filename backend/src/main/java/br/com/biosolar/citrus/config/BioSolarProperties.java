@@ -13,7 +13,8 @@ public record BioSolarProperties(
         @DefaultValue Cors cors,
         @DefaultValue Simulacao simulacao) {
 
-    public record Cors(@DefaultValue("*") List<String> origensPermitidas) {
+    public record Cors(
+            @DefaultValue({"http://localhost:[*]", "http://127.0.0.1:[*]", "null"}) List<String> origensPermitidas) {
     }
 
     /**
@@ -21,6 +22,7 @@ public record BioSolarProperties(
      * @param intervaloMs                intervalo real entre ciclos
      * @param minutosPorTick             minutos simulados por ciclo com fator de velocidade 1x
      * @param registrarLeituraACadaTicks frequencia de gravacao do historico de telemetria
+     * @param retencaoLeiturasHoras      leituras de telemetria mais antigas sao removidas (eventos sao mantidos)
      * @param controlesDemonstracao      habilita os endpoints do painel de simulacao
      * @param horaInicial                hora do relogio simulado ao iniciar/restaurar o cenario
      */
@@ -29,6 +31,7 @@ public record BioSolarProperties(
             @DefaultValue("1000") long intervaloMs,
             @DefaultValue("1") double minutosPorTick,
             @DefaultValue("2") int registrarLeituraACadaTicks,
+            @DefaultValue("24") int retencaoLeiturasHoras,
             @DefaultValue("true") boolean controlesDemonstracao,
             @DefaultValue("9") int horaInicial) {
     }
