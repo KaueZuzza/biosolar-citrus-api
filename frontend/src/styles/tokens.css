@@ -1,0 +1,163 @@
+/* =============================================================================
+   BioSolar Citrus: tokens de tema
+   Claro (padrão do SO), Escuro ("centro de controle"), Alto contraste, Escala de cinza.
+   Paleta dos gráficos: paleta categórica de referência validada para daltonismo
+   (slots 1-4 na ordem adjacente), com passos próprios para o modo escuro.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+  --fs: 1;                         /* escala de fonte (Central de Acessibilidade) */
+
+  --bg: #eef2ee;
+  --surface: #ffffff;
+  --surface-2: #f5f7f4;
+  --surface-3: #e8ede7;
+  --border: #d5dcd3;
+  --border-strong: #b7c1b5;
+  --ink: #0e1a13;
+  --ink-2: #435047;
+  --muted: #5f6b63;
+
+  --accent: #e8590c;               /* laranja cítrico */
+  --accent-ink: #b8430a;
+  --accent-bg: #fff0e6;
+  --leaf: #2b8a3e;
+  --water: #1971c2;
+  --water-soft: #d7e8fb;
+  --water-deep: #1864ab;
+  --solar: #d99a00;
+  --focus: #1864ab;
+
+  /* status: sempre acompanhado de ícone + rótulo */
+  --ok: #0ca30c;     --ok-ink: #0a6b0a;     --ok-bg: #e4f5e4;
+  --warn: #fab219;   --warn-ink: #7f4f00;   --warn-bg: #fff3d4;
+  --crit: #d03b3b;   --crit-ink: #a51f1f;   --crit-bg: #fde6e6;
+  --info: #2a78d6;   --info-ink: #1c5cab;   --info-bg: #e4eefb;
+  --emerg: #c92a2a;  --emerg-ink: #ffffff;  --emerg-bg: #fde0e0;
+
+  /* gráficos */
+  --chart-surface: #fcfcfb;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-1-soft: rgba(42, 120, 214, 0.10);
+
+  --shadow: 0 1px 2px rgba(16, 24, 20, 0.05), 0 6px 18px rgba(16, 24, 20, 0.06);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "Consolas", "SFMono-Regular", monospace;
+}
+
+/* ---- Escuro: centro de controle industrial --------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --bg: #070b09;
+    --surface: #0f1512;
+    --surface-2: #131b17;
+    --surface-3: #1a241f;
+    --border: #22302a;
+    --border-strong: #34443b;
+    --ink: #e9f0eb;
+    --ink-2: #b6c3ba;
+    --muted: #8a978f;
+    --accent: #ff922b;
+    --accent-ink: #ffa94d;
+    --accent-bg: rgba(255, 146, 43, 0.12);
+    --leaf: #51cf66;
+    --water: #4dabf7;
+    --water-soft: #0f2a42;
+    --water-deep: #1c7ed6;
+    --solar: #fcc419;
+    --focus: #74c0fc;
+    --ok-ink: #69db7c;   --ok-bg: rgba(12, 163, 12, 0.14);
+    --warn-ink: #ffd43b; --warn-bg: rgba(250, 178, 25, 0.13);
+    --crit-ink: #ff8787; --crit-bg: rgba(208, 59, 59, 0.18);
+    --info-ink: #74c0fc; --info-bg: rgba(42, 120, 214, 0.18);
+    --emerg-bg: rgba(201, 42, 42, 0.22);
+    --chart-surface: #111815;
+    --grid: #1f2a25;
+    --axis: #34423b;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-1-soft: rgba(57, 135, 229, 0.12);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #070b09;
+  --surface: #0f1512;
+  --surface-2: #131b17;
+  --surface-3: #1a241f;
+  --border: #22302a;
+  --border-strong: #34443b;
+  --ink: #e9f0eb;
+  --ink-2: #b6c3ba;
+  --muted: #8a978f;
+  --accent: #ff922b;
+  --accent-ink: #ffa94d;
+  --accent-bg: rgba(255, 146, 43, 0.12);
+  --leaf: #51cf66;
+  --water: #4dabf7;
+  --water-soft: #0f2a42;
+  --water-deep: #1c7ed6;
+  --solar: #fcc419;
+  --focus: #74c0fc;
+  --ok-ink: #69db7c;   --ok-bg: rgba(12, 163, 12, 0.14);
+  --warn-ink: #ffd43b; --warn-bg: rgba(250, 178, 25, 0.13);
+  --crit-ink: #ff8787; --crit-bg: rgba(208, 59, 59, 0.18);
+  --info-ink: #74c0fc; --info-bg: rgba(42, 120, 214, 0.18);
+  --emerg-bg: rgba(201, 42, 42, 0.22);
+  --chart-surface: #111815;
+  --grid: #1f2a25;
+  --axis: #34423b;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-1-soft: rgba(57, 135, 229, 0.12);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* ---- Alto contraste (preto + amarelo, independente do tema) --------------- */
+:root[data-contrast="alto"] {
+  color-scheme: dark;
+  --bg: #000;
+  --surface: #000;
+  --surface-2: #000;
+  --surface-3: #111;
+  --border: #fff;
+  --border-strong: #fff;
+  --ink: #fff;
+  --ink-2: #fff;
+  --muted: #f1f1f1;
+  --accent: #ffd400;
+  --accent-ink: #ffd400;
+  --accent-bg: #000;
+  --water: #7fd1ff;
+  --water-soft: #002b45;
+  --focus: #ffd400;
+  --ok-ink: #7CFF7C; --ok-bg: #000;
+  --warn-ink: #ffd400; --warn-bg: #000;
+  --crit-ink: #ff9b9b; --crit-bg: #000;
+  --info-ink: #9fd4ff; --info-bg: #000;
+  --emerg-bg: #300;
+  --chart-surface: #000;
+  --grid: #555;
+  --axis: #fff;
+  --shadow: none;
+}
+
+/* ---- Escala de cinza (filtro no elemento raiz não afeta position: fixed) ---- */
+:root[data-grayscale="true"] {
+  filter: grayscale(1);
+}

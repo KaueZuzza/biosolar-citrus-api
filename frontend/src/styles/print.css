@@ -1,0 +1,23 @@
+/* Impressão / "Salvar como PDF" do relatório operacional */
+@page { margin: 14mm; }
+
+body { background: #fff !important; color: #000 !important; }
+.topbar, .toasts, .skip-link, .sim-panel, footer.rodape, #vlibras { display: none !important; }
+
+/* Impressão do relatório: somente a área dedicada */
+body.imprimindo > *:not(#area-impressao) { display: none !important; }
+body.imprimindo #area-impressao { display: block !important; font-size: 11pt; }
+#area-impressao { display: none; }
+#area-impressao h1 { font-size: 16pt; margin-bottom: 8px; }
+#area-impressao h3 { margin: 12px 0 6px; }
+#area-impressao .rel-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+#area-impressao .rel-kpis div { border: 1px solid #999; border-radius: 6px; padding: 6px 8px; }
+#area-impressao dt { font-size: 8pt; color: #333; }
+#area-impressao dd { margin: 0; font-weight: 700; }
+#area-impressao table { width: 100%; border-collapse: collapse; }
+#area-impressao th, #area-impressao td { border: 1px solid #999; padding: 3px 6px; text-align: left; }
+#area-impressao .pill { border: 1px solid #000; padding: 1px 6px; border-radius: 8px; }
+#area-impressao .tabela-scroll { max-height: none !important; overflow: visible !important; border: 0; }
+
+/* Impressão do dashboard inteiro (Ctrl+P fora do relatório) */
+.card, .status-hero { box-shadow: none !important; break-inside: avoid; }

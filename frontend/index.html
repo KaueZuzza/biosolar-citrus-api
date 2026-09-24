@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="BioSolar Citrus: Centro Inteligente de Automação Hidro-Energética para pomares de citros.">
+  <meta name="theme-color" content="#0f1512">
+  <title>BioSolar Citrus · Centro de Operação</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23ff922b'/%3E%3Ccircle cx='32' cy='32' r='20' fill='%23ffd8a8'/%3E%3Cpath d='M32 12v40M12 32h40M18 18l28 28M46 18L18 46' stroke='%23ff922b' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="src/styles/tokens.css">
+  <link rel="stylesheet" href="src/styles/app.css">
+  <link rel="stylesheet" href="src/styles/print.css" media="print">
+  <script>
+    // Aplica as preferências VISUAIS salvas antes da renderização (evita piscar o tema).
+    // Nenhum dado operacional é armazenado no navegador.
+    (function () {
+      try {
+        var p = JSON.parse(localStorage.getItem('biosolar.preferencias') || '{}');
+        var r = document.documentElement;
+        if (p.tema === 'light' || p.tema === 'dark') r.setAttribute('data-theme', p.tema);
+        if (p.fonte) r.style.setProperty('--fs', p.fonte);
+        if (p.contraste) r.setAttribute('data-contrast', 'alto');
+        if (p.cinza) r.setAttribute('data-grayscale', 'true');
+        if (p.movimento) r.setAttribute('data-motion', 'reduzido');
+      } catch (e) { /* preferências indisponíveis: usa o padrão */ }
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <!-- ===================== CABEÇALHO ===================== -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <svg width="46" height="46" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+          <g stroke="#f5b700" stroke-width="3" stroke-linecap="round">
+            <path d="M32 3v6M32 55v6M3 32h6M55 32h6M11.5 11.5l4.2 4.2M48.3 48.3l4.2 4.2M11.5 52.5l4.2-4.2M48.3 15.7l4.2-4.2"/>
+          </g>
+          <circle cx="32" cy="32" r="19" fill="#ff922b"/>
+          <circle cx="32" cy="32" r="15" fill="#ffe8cc"/>
+          <g stroke="#ff922b" stroke-width="2.2">
+            <path d="M32 17v30M17 32h30M21.4 21.4l21.2 21.2M42.6 21.4L21.4 42.6"/>
+          </g>
+          <path d="M32 24c-3.6 4.6-5.4 7.7-5.4 10.1a5.4 5.4 0 0 0 10.8 0c0-2.4-1.8-5.5-5.4-10.1z" fill="#1c7ed6"/>
+        </svg>
+        <div>
+          <p class="brand-title">Bio<span>Solar</span> Citrus</p>
+          <p class="brand-sub">Centro Inteligente de Automação Hidro-Energética</p>
+        </div>
+      </div>
+
+      <div class="topbar-tools">
+        <span class="chip" id="chip-api" title="Conexão com a API REST">
+          <span class="dot" id="api-dot" aria-hidden="true"></span>
+          <span id="api-texto">Conectando…</span>
+        </span>
+        <span class="chip" id="chip-relogio" title="Relógio da fazenda (tempo simulado)">
+          <span aria-hidden="true" id="relogio-icone">☀️</span>
+          <span><span class="sr-only">Hora na fazenda: </span><strong id="relogio-hora">--:--</strong></span>
+          <span class="muted" id="relogio-velocidade">1×</span>
+        </span>
+
+        <button class="icon-btn" id="btn-voz" type="button" aria-label="Ouvir status da fazenda" title="Ouvir status da fazenda">🔊</button>
+
+        <div class="notif-wrap">
+          <button class="icon-btn" id="btn-notif" type="button" aria-haspopup="true" aria-expanded="false"
+                  aria-controls="painel-notif" aria-label="Notificações" title="Notificações">
+            🔔<span class="badge-count" id="notif-count" hidden>0</span>
+          </button>
+          <div class="notif-panel" id="painel-notif" hidden>
+            <div class="card-head" style="margin:0">
+              <h2 class="card-title">Notificações</h2>
+              <button class="btn btn-sm btn-ghost" type="button" id="notif-lidas">Marcar como lidas</button>
+            </div>
+            <ul id="notif-lista" aria-live="off"></ul>
+          </div>
+        </div>
+
+        <button class="icon-btn" id="btn-tema" type="button" aria-label="Alternar tema claro/escuro" title="Alternar tema claro/escuro">🌓</button>
+        <button class="icon-btn" id="btn-a11y" type="button" aria-haspopup="dialog" aria-label="Central de Acessibilidade" title="Central de Acessibilidade">♿</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="conteudo" tabindex="-1">
+    <div class="offline-banner" role="alert" id="offline-banner">
+      ⚠️ Sem conexão com o servidor. Exibindo a última leitura recebida em <span id="offline-hora">--</span>.
+      Nenhum dado é gerado no navegador: aguardando a API voltar.
+    </div>
+
+    <!-- ===================== STATUS PRINCIPAL ===================== -->
+    <section class="status-hero" id="status-hero" data-status="NORMAL" aria-labelledby="status-rotulo">
+      <span class="emoji" id="status-emoji" aria-hidden="true">⚙️</span>
+      <div>
+        <h1 class="label" id="status-rotulo">Carregando telemetria…</h1>
+        <p class="desc" id="status-desc">Conectando ao servidor de automação.</p>
+      </div>
+      <div class="meta">
+        <span class="pill neutral" id="status-simulacao">⚙️ Simulação em execução</span>
+        <span class="pill neutral"><span class="sr-only">Última leitura: </span>🕒 <span id="status-leitura">--:--:--</span></span>
+      </div>
+    </section>
+    <p class="sr-only" aria-live="assertive" id="anuncio-critico"></p>
+    <p class="sr-only" aria-live="polite" id="anuncio-status"></p>
+
+    <!-- ===================== PAINEL DE SIMULAÇÃO ===================== -->
+    <section class="card sim-panel" aria-labelledby="sim-titulo" style="margin-bottom:16px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title" id="sim-titulo">🎬 Painel de Simulação <span class="pill info">modo demonstração</span></h2>
+          <p class="card-sub">Altera apenas as condições físicas no servidor. As decisões continuam sendo do motor de regras do backend.</p>
+        </div>
+        <button class="btn btn-sm" type="button" id="sim-toggle" aria-expanded="true" aria-controls="sim-body">Ocultar</button>
+      </div>
+      <div class="sim-body" id="sim-body">
+        <div class="sim-group" role="group" aria-labelledby="sim-vel-label">
+          <span id="sim-vel-label">⏩ Velocidade do tempo</span>
+          <div class="sim-row" id="sim-velocidades">
+            <button class="btn btn-sm" type="button" data-fator="1" aria-pressed="true">1×</button>
+            <button class="btn btn-sm" type="button" data-fator="5" aria-pressed="false">5×</button>
+            <button class="btn btn-sm" type="button" data-fator="15" aria-pressed="false">15×</button>
+            <button class="btn btn-sm" type="button" data-fator="30" aria-pressed="false">30×</button>
+            <button class="btn btn-sm" type="button" id="sim-pausa" aria-pressed="false">⏸ Pausar</button>
+          </div>
+        </div>
+        <div class="sim-group" role="group" aria-labelledby="sim-umid-label">
+          <span id="sim-umid-label">🌱 Umidade do solo</span>
+          <div class="sim-row">
+            <label class="sr-only" for="sim-talhao">Talhão</label>
+            <select id="sim-talhao">
+              <option value="A">Talhão A</option>
+              <option value="B">Talhão B</option>
+              <option value="C" selected>Talhão C</option>
+              <option value="D">Talhão D</option>
+            </select>
+            <button class="btn btn-sm" type="button" data-umidade="-5">↓ Reduzir 5%</button>
+            <button class="btn btn-sm" type="button" data-umidade="5">↑ +5%</button>
+          </div>
+        </div>
+        <div class="sim-group" role="group" aria-labelledby="sim-res-label">
+          <span id="sim-res-label">💧 Reservatório</span>
+          <div class="sim-row">
+            <button class="btn btn-sm" type="button" data-reservatorio="-10">↓ Reduzir 10%</button>
+            <button class="btn btn-sm" type="button" data-reservatorio="10">↑ Reabastecer 10%</button>
+            <button class="btn btn-sm btn-danger" type="button" id="sim-emergencia">🚨 Simular emergência</button>
+          </div>
+        </div>
+        <div class="sim-group">
+          <span>Cenário</span>
+          <div class="sim-row">
+            <button class="btn btn-sm" type="button" id="sim-restaurar">↺ Restaurar cenário</button>
+          </div>
+        </div>
+      </div>
+      <details class="roteiro">
+        <summary>Roteiro sugerido para a banca</summary>
+        <ol>
+          <li>Situação normal: reservatório em 67% e sistema operacional.</li>
+          <li>Acelerar para 15× ou reduzir a umidade do Talhão C.</li>
+          <li>Talhão C abaixo de 25%: evento crítico.</li>
+          <li>O backend liga o aspersor automaticamente (Motor de Decisão, P2).</li>
+          <li>Reduzir o reservatório algumas vezes.</li>
+          <li>Reservatório abaixo de 15%: emergência.</li>
+          <li>O backend desliga todas as bombas (P1).</li>
+          <li>Tentar ligar um aspersor em "Controle dos Aspersores".</li>
+          <li>O servidor recusa: "Acionamento bloqueado".</li>
+          <li>Mostrar histórico, índice, relatório e acessibilidade.</li>
+        </ol>
+      </details>
+    </section>
+
+    <!-- ===================== INDICADORES ===================== -->
+    <section class="kpis" aria-label="Indicadores principais">
+      <article class="card kpi" id="kpi-reservatorio">
+        <h2 class="kpi-label">💧 Reservatório</h2>
+        <p class="kpi-value"><span data-v>--</span></p>
+        <div class="meter" data-meter><i style="width:0%"></i></div>
+        <p class="kpi-sub" data-s></p>
+      </article>
+      <article class="card kpi" id="kpi-umidade">
+        <h2 class="kpi-label">🌱 Umidade média</h2>
+        <p class="kpi-value"><span data-v>--</span></p>
+        <div class="meter ok" data-meter><i style="width:0%"></i></div>
+        <p class="kpi-sub" data-s></p>
+      </article>
+      <article class="card kpi" id="kpi-aspersores">
+        <h2 class="kpi-label">🚿 Aspersores ativos</h2>
+        <p class="kpi-value"><span data-v>--</span></p>
+        <div class="meter" data-meter><i style="width:0%"></i></div>
+        <p class="kpi-sub" data-s></p>
+      </article>
+      <article class="card kpi" id="kpi-indice">
+        <h2 class="kpi-label">⚡ Índice Hidro-Energético</h2>
+        <p class="kpi-value"><span data-v>--</span> <small>/ 100</small></p>
+        <div class="meter" data-meter><i style="width:0%"></i></div>
+        <p class="kpi-sub" data-s></p>
+      </article>
+      <article class="card kpi" id="kpi-energia">
+        <h2 class="kpi-label">☀️ Energia das bombas</h2>
+        <p class="kpi-value"><span data-v>--</span></p>
+        <div class="meter solar" data-meter><i style="width:0%"></i></div>
+        <p class="kpi-sub" data-s></p>
+      </article>
+    </section>
+
+    <!-- ===================== DECISÃO + RESERVATÓRIO ===================== -->
+    <div class="grid">
+      <section class="card decisao span-8" id="decisao" data-nivel="SUCESSO" aria-labelledby="decisao-cab">
+        <div class="card-head" style="margin-bottom:6px">
+          <div>
+            <h2 class="card-title" id="decisao-cab">🧠 Motor de Decisão</h2>
+            <p class="card-sub">A decisão mais importante do momento, tomada e explicada pelo servidor.</p>
+          </div>
+          <span class="pill rule" id="decisao-regra">--</span>
+        </div>
+        <p class="decisao-titulo" id="decisao-titulo">Aguardando telemetria…</p>
+        <p class="decisao-oque" id="decisao-oque"></p>
+        <dl class="qa">
+          <div><dt>📍 Onde?</dt><dd id="decisao-onde">--</dd></div>
+          <div><dt>❓ Por que aconteceu?</dt><dd id="decisao-porque">--</dd></div>
+          <div class="destaque"><dt>🤖 Decisão automática</dt><dd id="decisao-acao">--</dd></div>
+          <div><dt>⚠️ Existe risco?</dt><dd id="decisao-risco">--</dd></div>
+          <div><dt>👤 O operador precisa agir?</dt><dd id="decisao-operador">--</dd></div>
+          <div class="destaque" style="background:var(--surface-2);border-color:var(--border)"><dt>📊 Impacto da decisão</dt><dd id="decisao-impacto">--</dd></div>
+        </dl>
+        <nav class="hierarquia" aria-label="Hierarquia das regras (regra ativa destacada)">
+          <ol>
+            <li><span class="regra-chip" data-regra="P1"><b>P1</b> 🚨 Bloqueio de emergência</span></li>
+            <li><span class="regra-chip" data-regra="P2"><b>P2</b> 🔴 Irrigação crítica</span></li>
+            <li><span class="regra-chip" data-regra="P3"><b>P3</b> 🟡 Operação normal</span></li>
+            <li><span class="regra-chip" data-regra="P4"><b>P4</b> 👤 Controle manual</span></li>
+          </ol>
+        </nav>
+      </section>
+
+      <section class="card span-4" id="reservatorio" aria-labelledby="res-titulo">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title" id="res-titulo">💧 Reservatório central</h2>
+            <p class="card-sub" id="res-nome">R-01</p>
+          </div>
+          <span class="pill neutral" id="res-status">--</span>
+        </div>
+        <div class="tanque-wrap">
+          <div class="tanque" id="tanque" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Nível do reservatório">
+            <div class="tanque-agua" id="tanque-agua" style="height:0%"></div>
+            <div class="marca" style="bottom:30%"><span>30% atenção</span></div>
+            <div class="marca" style="bottom:20%"><span>20% rearme</span></div>
+            <div class="marca baixo" style="bottom:15%"><span>15% crítico</span></div>
+            <div class="tanque-pct num" id="tanque-pct">--</div>
+          </div>
+          <dl class="tanque-info">
+            <div><dt>Volume</dt><dd class="num" id="res-volume">--</dd></div>
+            <div><dt>Consumo (bombas)</dt><dd class="num" id="res-consumo">--</dd></div>
+            <div><dt>Recarga (poço solar)</dt><dd class="num" id="res-recarga">--</dd></div>
+            <div><dt>Tendência</dt><dd class="num" id="res-tendencia">--</dd></div>
+            <div><dt>Autonomia até 15%</dt><dd class="num" id="res-autonomia">--</dd></div>
+            <div><dt>Proteção hídrica</dt><dd id="res-bloqueio">--</dd></div>
+          </dl>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================== MAPA + CONTROLE ===================== -->
+    <div class="grid">
+      <section class="card span-8" aria-labelledby="mapa-titulo">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title" id="mapa-titulo">🗺️ Mapa Operacional dos Talhões</h2>
+            <p class="card-sub">Clique em um talhão para ver os detalhes. A tubulação anima quando a bomba está ligada.</p>
+          </div>
+          <div class="legend" aria-hidden="true">
+            <span>🟢 Normal (≥ 30%)</span><span>🟡 Atenção</span><span>🔴 Crítico (&lt; 25%)</span>
+          </div>
+        </div>
+        <div class="mapa" id="mapa">
+          <div class="hub">
+            <div class="hub-box" id="hub">
+              <span aria-hidden="true">💧</span>
+              <span class="v num" id="hub-nivel">--</span>
+              <span class="l">Reservatório</span>
+              <span class="l" id="hub-bombas">0/4 bombas</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card span-4" id="controle" aria-labelledby="ctrl-titulo">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title" id="ctrl-titulo">🎛️ Controle dos Aspersores</h2>
+            <p class="card-sub">Comandos manuais (P4), validados pelo servidor.</p>
+          </div>
+        </div>
+        <p class="aviso-bloqueio" id="aviso-bloqueio">🔒 Proteção hídrica ativa: o servidor recusará qualquer acionamento até o reservatório voltar a 20%.</p>
+        <ul class="controle-lista" id="controle-lista"></ul>
+      </section>
+    </div>
+
+    <!-- ===================== GRÁFICOS ===================== -->
+    <div class="grid">
+      <section class="card span-7" aria-labelledby="g-umid-titulo">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title" id="g-umid-titulo">📈 Umidade dos talhões</h2>
+            <p class="card-sub">Últimas leituras gravadas no banco (%). Linha tracejada: limite crítico de 25%.</p>
+          </div>
+        </div>
+        <div class="legend" id="g-umid-legenda"></div>
+        <div class="chart" id="g-umidade" tabindex="0" role="img" aria-label="Gráfico da umidade dos talhões ao longo do tempo"></div>
+        <details class="tabela"><summary>Ver dados em tabela</summary><div class="tabela-scroll" id="g-umidade-tabela"></div></details>
+      </section>
+
+      <section class="card span-5" aria-labelledby="g-res-titulo">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title" id="g-res-titulo">💧 Nível do reservatório</h2>
+            <p class="card-sub">Histórico (%). Faixas de atenção (30%) e de bloqueio (15%).</p>
+          </div>
+        </div>
+        <div class="chart" id="g-reservatorio" tabindex="0" role="img" aria-label="Gráfico do nível do reservatório ao longo do tempo"></div>
+        <details class="tabela"><summary>Ver dados em tabela</summary><div class="tabela-scroll" id="g-reservatorio-tabela"></div></details>
+      </section>
+    </div>
+
+    <div class="grid">
+      <section class="card span-5" aria-labelledby="g-irr-titulo">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title" id="g-irr-titulo">🚿 Acionamentos por talhão</h2>
+            <p class="card-sub">Irrigações automáticas (servidor) e comandos manuais (operador).</p>
+          </div>
+        </div>
+        <div class="legend" id="g-irr-legenda"></div>
+        <div class="chart" id="g-irrigacoes" tabindex="0" role="img" aria-label="Gráfico de acionamentos por talhão"></div>
+        <details class="tabela"><summary>Ver dados em tabela</summary><div class="tabela-scroll" id="g-irrigacoes-tabela"></div></details>
+      </section>
+
+      <section class="card span-7" id="indice" aria-labelledby="ind-titulo">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title" id="ind-titulo">⚡ Índice Hidro-Energético</h2>
+            <p class="card-sub">Condição operacional da fazenda em um único número, com fórmula aberta.</p>
+          </div>
+          <span class="pill neutral" id="ind-class">--</span>
+        </div>
+        <div class="indice-top">
+          <div class="indice-ring" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="ind-ring" aria-label="Índice Hidro-Energético">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="trilho" cx="60" cy="60" r="50" fill="none" stroke-width="12"/>
+              <circle class="arco" id="ind-arco" cx="60" cy="60" r="50" fill="none" stroke-width="12"
+                      stroke="var(--ok)" stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+            </svg>
+            <div class="centro"><b class="num" id="ind-valor">--</b><span>de 100</span></div>
+          </div>
+          <div style="flex:1;min-width:220px">
+            <p class="formula" id="ind-formula">IHE = 0,5 × H + 0,3 × S + 0,2 × E</p>
+            <div class="fatores" id="ind-fatores"></div>
+          </div>
+        </div>
+        <details class="como">
+          <summary>Como é calculado?</summary>
+          <div class="small" style="display:grid;gap:8px">
+            <p><b>H: Hídrico (peso 50%)</b>: nível atual do reservatório. A água disponível é o recurso limitante.</p>
+            <p><b>S: Solo (peso 30%)</b>: média dos talhões. Umidade até 15% vale 0 ponto e umidade a partir do alvo de irrigação (40%) vale 100 pontos, proporcional entre esses valores.</p>
+            <p><b>E: Energia (peso 20%)</b>: parcela do consumo das bombas atendida pela usina solar (100 quando não há bombas ligadas).</p>
+            <p><b>Trava de segurança:</b> com o bloqueio de emergência ativo, o índice é limitado a 25.</p>
+            <div class="escala">
+              <span class="pill ok">🟢 ≥ 70 · Operação equilibrada</span>
+              <span class="pill warn">🟡 40–69 · Atenção necessária</span>
+              <span class="pill crit">🔴 &lt; 40 · Risco hídrico elevado</span>
+            </div>
+          </div>
+        </details>
+      </section>
+    </div>
+
+    <!-- ===================== HISTÓRICO + ALERTAS + RELATÓRIO ===================== -->
+    <div class="grid">
+      <section class="card span-8" aria-labelledby="hist-titulo">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title" id="hist-titulo">📜 Histórico de eventos</h2>
+            <p class="card-sub">Linha do tempo registrada no banco de dados: automações, comandos, bloqueios e recuperações.</p>
+          </div>
+          <div class="filtros" role="group" aria-label="Filtrar eventos" id="hist-filtros">
+            <button class="btn btn-sm" type="button" data-filtro="todos" aria-pressed="true">Todos</button>
+            <button class="btn btn-sm" type="button" data-filtro="AUTOMACAO" aria-pressed="false">🤖 Automação</button>
+            <button class="btn btn-sm" type="button" data-filtro="OPERADOR" aria-pressed="false">👤 Operador</button>
+            <button class="btn btn-sm" type="button" data-filtro="criticos" aria-pressed="false">🚨 Críticos</button>
+            <button class="btn btn-sm" type="button" data-filtro="SIMULACAO" aria-pressed="false">🎬 Simulação</button>
+          </div>
+        </div>
+        <ol class="timeline" id="timeline" aria-live="off"></ol>
+      </section>
+
+      <div class="span-4" style="display:grid;gap:16px;align-content:start">
+        <section class="card" aria-labelledby="alertas-titulo">
+          <div class="card-head">
+            <h2 class="card-title" id="alertas-titulo">🚨 Alertas ativos</h2>
+            <span class="pill neutral" id="alertas-total">0</span>
+          </div>
+          <ul class="alertas" id="alertas"></ul>
+        </section>
+
+        <section class="card" aria-labelledby="rel-titulo">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title" id="rel-titulo">📤 Relatório operacional</h2>
+              <p class="card-sub">Resumo do período com PDF, impressão, CSV e WhatsApp.</p>
+            </div>
+          </div>
+          <button class="btn btn-primary" type="button" id="btn-relatorio" style="width:100%">📄 Gerar relatório</button>
+        </section>
+
+        <section class="card" aria-labelledby="saude-titulo">
+          <div class="card-head">
+            <h2 class="card-title" id="saude-titulo">🩺 Saúde do sistema</h2>
+            <span class="pill neutral" id="saude-status">--</span>
+          </div>
+          <dl class="tanque-info" id="saude-lista"></dl>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rodape">
+    <span>🍊☀️ BioSolar Citrus · Hackathon V JTI 2026 · Monitorar → Interpretar → Automatizar → Proteger → Informar</span>
+    <span>Fonte da verdade: servidor (<code>GET /telemetria</code>, <code>POST /bombas/acionar</code>). O navegador apenas exibe e envia comandos.</span>
+  </footer>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <!-- ===================== DIÁLOGOS ===================== -->
+  <dialog id="dlg-talhao" aria-labelledby="dlg-talhao-titulo">
+    <div class="dlg-head">
+      <h2 id="dlg-talhao-titulo">Talhão</h2>
+      <button class="btn btn-sm btn-ghost" type="button" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div class="dlg-body" id="dlg-talhao-corpo"></div>
+    <div class="dlg-foot" id="dlg-talhao-acoes"></div>
+  </dialog>
+
+  <dialog id="dlg-bloqueio" class="bloqueio" aria-labelledby="dlg-bloqueio-titulo" aria-describedby="dlg-bloqueio-msg">
+    <div class="dlg-head">
+      <h2 id="dlg-bloqueio-titulo">🚨 AÇÃO BLOQUEADA</h2>
+      <button class="btn btn-sm btn-ghost" type="button" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div class="dlg-body">
+      <p style="font-size:1.05rem;font-weight:700" id="dlg-bloqueio-msg"></p>
+      <p class="muted" id="dlg-bloqueio-detalhe"></p>
+      <p class="small">Resposta do servidor: <code id="dlg-bloqueio-codigo"></code></p>
+    </div>
+    <div class="dlg-foot"><button class="btn btn-primary" type="button" data-fechar>Entendi</button></div>
+  </dialog>
+
+  <dialog id="dlg-relatorio" aria-labelledby="dlg-rel-titulo" style="width:min(820px,calc(100vw - 32px))">
+    <div class="dlg-head">
+      <h2 id="dlg-rel-titulo">📄 Relatório Operacional</h2>
+      <button class="btn btn-sm btn-ghost" type="button" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div class="dlg-body" id="relatorio-corpo"><p>Gerando…</p></div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" id="rel-copiar">📋 Copiar resumo</button>
+      <a class="btn" id="rel-csv" href="#" download>⬇️ CSV</a>
+      <button class="btn" type="button" id="rel-whatsapp">📱 WhatsApp</button>
+      <button class="btn btn-primary" type="button" id="rel-imprimir">🖨️ Imprimir / PDF</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-a11y" class="lateral" aria-labelledby="dlg-a11y-titulo">
+    <div class="dlg-head">
+      <h2 id="dlg-a11y-titulo">♿ Central de Acessibilidade</h2>
+      <button class="btn btn-sm btn-ghost" type="button" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div class="dlg-body">
+      <section class="a11y-sec" aria-labelledby="a11y-texto">
+        <h3 id="a11y-texto">Texto</h3>
+        <div class="a11y-row">
+          <button class="btn" type="button" id="fonte-menos" aria-label="Diminuir fonte">A−</button>
+          <button class="btn" type="button" id="fonte-padrao" aria-label="Restaurar tamanho da fonte">A</button>
+          <button class="btn" type="button" id="fonte-mais" aria-label="Aumentar fonte">A+</button>
+          <span class="muted small" id="fonte-valor">100%</span>
+        </div>
+      </section>
+      <section class="a11y-sec" aria-labelledby="a11y-visual">
+        <h3 id="a11y-visual">Visual</h3>
+        <div class="a11y-row" role="group" aria-label="Tema">
+          <button class="btn" type="button" data-tema="light" aria-pressed="false">☀️ Claro</button>
+          <button class="btn" type="button" data-tema="dark" aria-pressed="false">🌙 Escuro</button>
+          <button class="btn" type="button" data-tema="sistema" aria-pressed="false">💻 Sistema</button>
+        </div>
+        <label class="switch"><span>Alto contraste</span><input type="checkbox" id="pref-contraste"></label>
+        <label class="switch"><span>Escala de cinza</span><input type="checkbox" id="pref-cinza"></label>
+      </section>
+      <section class="a11y-sec" aria-labelledby="a11y-mov">
+        <h3 id="a11y-mov">Movimento</h3>
+        <label class="switch"><span>Reduzir animações</span><input type="checkbox" id="pref-movimento"></label>
+        <p class="small muted">A preferência "reduzir movimento" do sistema operacional é respeitada automaticamente.</p>
+      </section>
+      <section class="a11y-sec" aria-labelledby="a11y-voz">
+        <h3 id="a11y-voz">Leitura em voz</h3>
+        <button class="btn" type="button" id="a11y-ouvir">🔊 Ouvir status da fazenda</button>
+        <label class="switch"><span>Anunciar emergências em voz</span><input type="checkbox" id="pref-voz-auto"></label>
+      </section>
+      <section class="a11y-sec" aria-labelledby="a11y-libras">
+        <h3 id="a11y-libras">Libras</h3>
+        <label class="switch"><span>Ativar VLibras (gov.br)</span><input type="checkbox" id="pref-libras"></label>
+        <p class="small muted" id="libras-status">Tradutor oficial do Governo Federal. Requer conexão com a internet.</p>
+      </section>
+      <section class="a11y-sec" aria-labelledby="a11y-nav">
+        <h3 id="a11y-nav">Navegação</h3>
+        <p class="small">Use <kbd>Tab</kbd> para navegar, <kbd>Enter</kbd> para acionar e <kbd>Esc</kbd> para fechar janelas. Nos gráficos, use <kbd>←</kbd> <kbd>→</kbd> para percorrer as leituras. O link "Pular para o conteúdo" é o primeiro item da página.</p>
+      </section>
+      <button class="btn" type="button" id="a11y-reset">↺ Restaurar preferências visuais</button>
+    </div>
+  </dialog>
+
+  <!-- Área do VLibras (carregado sob demanda) -->
+  <div vw class="enabled" id="vlibras" hidden>
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+  </div>
+
+  <!-- ===================== SCRIPTS (sem build, sem dependências externas) ===================== -->
+  <script src="src/config.js"></script>
+  <script src="src/utils/format.js"></script>
+  <script src="src/utils/dom.js"></script>
+  <script src="src/utils/charts.js"></script>
+  <script src="src/utils/voz.js"></script>
+  <script src="src/services/api.js"></script>
+  <script src="src/services/telemetriaService.js"></script>
+  <script src="src/services/bombaService.js"></script>
+  <script src="src/services/eventoService.js"></script>
+  <script src="src/services/simulacaoService.js"></script>
+  <script src="src/services/relatorioService.js"></script>
+  <script src="src/components/statusGeral.js"></script>
+  <script src="src/components/indicadores.js"></script>
+  <script src="src/components/motorDecisao.js"></script>
+  <script src="src/components/reservatorio.js"></script>
+  <script src="src/components/mapaTalhoes.js"></script>
+  <script src="src/components/controleAspersores.js"></script>
+  <script src="src/components/graficos.js"></script>
+  <script src="src/components/indiceHidroEnergetico.js"></script>
+  <script src="src/components/historico.js"></script>
+  <script src="src/components/notificacoes.js"></script>
+  <script src="src/components/painelSimulacao.js"></script>
+  <script src="src/components/relatorio.js"></script>
+  <script src="src/components/acessibilidade.js"></script>
+  <script src="src/components/saude.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
