@@ -16,6 +16,23 @@ param(
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
 
+# Variaveis opcionais do arquivo .env na raiz do projeto (modelo: .env.example)
+$arquivoEnv = Join-Path $raiz '.env'
+if (Test-Path $arquivoEnv) {
+    Get-Content $arquivoEnv | ForEach-Object {
+        $linha = $_.Trim()
+        if ($linha -and -not $linha.StartsWith('#') -and $linha.Contains('=')) {
+            $partes = $linha.Split('=', 2)
+            Set-Item -Path ('Env:' + $partes[0].Trim()) -Value $partes[1].Trim()
+        }
+    }
+    Write-Host '[ok] Variaveis carregadas de .env'
+}
+# A porta do PostgreSQL acompanha BIOSOLAR_DB_URL, se definida
+if (-not $PSBoundParameters.ContainsKey('PortaPostgres') -and $env:BIOSOLAR_DB_URL -match 'localhost:(\d+)/') {
+    $PortaPostgres = [int]$Matches[1]
+}
+
 # JDK: usa JAVA_HOME do sistema ou o JDK portatil instalado por setup-ambiente.ps1
 if (-not $env:JAVA_HOME -and (Test-Path (Join-Path $Ferramentas 'jdk-21\bin\java.exe'))) {
     $env:JAVA_HOME = Join-Path $Ferramentas 'jdk-21'

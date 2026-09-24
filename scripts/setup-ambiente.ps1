@@ -22,6 +22,24 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+# Variaveis opcionais do arquivo .env na raiz do projeto (modelo: .env.example)
+$raiz = Split-Path -Parent $PSScriptRoot
+$arquivoEnv = Join-Path $raiz '.env'
+if (Test-Path $arquivoEnv) {
+    Get-Content $arquivoEnv | ForEach-Object {
+        $linha = $_.Trim()
+        if ($linha -and -not $linha.StartsWith('#') -and $linha.Contains('=')) {
+            $partes = $linha.Split('=', 2)
+            Set-Item -Path ('Env:' + $partes[0].Trim()) -Value $partes[1].Trim()
+        }
+    }
+    Write-Host '[ok] Variaveis carregadas de .env'
+}
+# A porta do PostgreSQL acompanha BIOSOLAR_DB_URL, se definida
+if (-not $PSBoundParameters.ContainsKey('PortaPostgres') -and $env:BIOSOLAR_DB_URL -match 'localhost:(\d+)/') {
+    $PortaPostgres = [int]$Matches[1]
+}
+
 $JdkUrl      = 'https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jdk/hotspot/normal/eclipse?project=jdk'
 $MavenVersao = '3.9.11'
 $MavenUrl    = "https://repo1.maven.org/maven2/org/apache/maven/apache-maven/$MavenVersao/apache-maven-$MavenVersao-bin.zip"
@@ -93,6 +111,13 @@ if (-not $SemPostgres) {
 
     & "$pgBin\pg_ctl.exe" -D $pgData status | Out-Null
     if ($LASTEXITCODE -ne 0) {
+        & "$pgBin\pg_isready.exe" -h localhost -p $PortaPostgres | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            throw ("Ja existe outro PostgreSQL usando a porta $PortaPostgres neste computador. Opcoes: " +
+                "(1) crie o banco nele (README, secao 'Banco de dados') ou " +
+                "(2) use outra porta: copie .env.example para .env, defina " +
+                "BIOSOLAR_DB_URL=jdbc:postgresql://localhost:5433/biosolar e rode este script novamente.")
+        }
         Write-Host "[..] Iniciando PostgreSQL na porta $PortaPostgres ..."
         # Start-Process evita que o postgres herde o pipe de saida deste script (o que o travaria)
         Start-Process -FilePath "$pgBin\pg_ctl.exe" -WindowStyle Hidden `
