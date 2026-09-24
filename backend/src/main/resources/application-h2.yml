@@ -1,0 +1,7 @@
+# Plano B para demonstracao sem PostgreSQL: banco H2 em arquivo (./data), ainda persistido no servidor.
+# Uso: mvnw spring-boot:run -Dspring-boot.run.profiles=h2
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/biosolar;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;AUTO_SERVER=TRUE
+    username: sa
+    password: ""

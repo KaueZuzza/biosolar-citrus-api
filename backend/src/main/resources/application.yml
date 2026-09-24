@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: biosolar-citrus-api
+  datasource:
+    url: ${BIOSOLAR_DB_URL:jdbc:postgresql://localhost:5432/biosolar}
+    username: ${BIOSOLAR_DB_USUARIO:biosolar}
+    password: ${BIOSOLAR_DB_SENHA:biosolar}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 5000
+  jpa:
+    # O schema e controlado exclusivamente pelo Flyway (src/main/resources/db/migration)
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  web:
+    resources:
+      # ../frontend primeiro: editar o dashboard nao exige rebuild durante o desenvolvimento
+      static-locations: file:../frontend/, classpath:/static/
+
+server:
+  port: ${PORT:8080}
+  compression:
+    enabled: true
+
+biosolar:
+  cors:
+    # Lista separada por virgula. Ex.: http://localhost:5500,https://biosolar.exemplo.com
+    origens-permitidas: ${BIOSOLAR_CORS_ORIGENS:*}
+  simulacao:
+    habilitada: true
+    intervalo-ms: 1000
+    # 1 ciclo (1 s real) = 1 minuto simulado; o fator de velocidade multiplica esse valor
+    minutos-por-tick: 1
+    registrar-leitura-a-cada-ticks: 2
+    controles-demonstracao: ${BIOSOLAR_CONTROLES_DEMO:true}
+    hora-inicial: 9
+
+logging:
+  level:
+    br.com.biosolar: INFO
