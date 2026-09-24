@@ -90,6 +90,10 @@ public class TelemetriaService {
     }
 
     private List<EventoDTO> eventosRecentes() {
+        if (estado.isBancoEmEspera()) {
+            // Banco fora do ar: responde na hora com o estado ao vivo em vez de esperar o timeout de conexao
+            return List.of();
+        }
         try {
             return eventoRepository.findAllByOrderByIdDesc(PageRequest.of(0, EVENTOS_RECENTES)).stream()
                     .map(EventoDTO::de).toList();

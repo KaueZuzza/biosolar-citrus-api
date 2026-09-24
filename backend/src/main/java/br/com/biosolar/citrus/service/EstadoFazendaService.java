@@ -75,7 +75,7 @@ public class EstadoFazendaService {
     /** Incrementada a cada restauracao do cenario: leituras capturadas antes dela sao descartadas. */
     private volatile long geracao;
 
-    private Instant proximaTentativaPersistencia;
+    private volatile Instant proximaTentativaPersistencia;
 
     public EstadoFazendaService(TalhaoRepository talhaoRepository, ReservatorioRepository reservatorioRepository,
                                 EstadoSimulacaoRepository estadoRepository, EventoRepository eventoRepository,
@@ -202,6 +202,11 @@ public class EstadoFazendaService {
         } finally {
             lock.unlock();
         }
+    }
+
+    /** Banco em espera apos uma falha recente: consultas nao essenciais podem ser puladas. */
+    public boolean isBancoEmEspera() {
+        return emEsperaAposFalha();
     }
 
     private boolean emEsperaAposFalha() {
