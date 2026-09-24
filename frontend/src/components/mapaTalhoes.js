@@ -13,14 +13,16 @@ BS.componentes.mapaTalhoes = (function () {
       b.className = 'talhao';
       b.setAttribute('data-pos', x.id);
       b.setAttribute('data-id', x.id);
+      // Somente conteúdo "phrasing" (span/i) dentro do <button>: HTML válido. Os filhos do botão são
+      // itens flex (coluna), portanto se comportam como blocos sem precisar de <div>.
       b.innerHTML =
-        '<div class="talhao-top"><span class="talhao-nome">' + f.esc(x.nome) + '</span><span data-pill></span></div>' +
-        '<div class="talhao-cultura">' + (x.cultura === 'LIMAO' ? '🍋 ' : '🍊 ') + f.esc(x.culturaRotulo + ' ' + x.variedade) + '</div>' +
-        '<div class="talhao-umid"><span class="v num" data-umid>--</span><span class="t" data-tend></span></div>' +
-        '<div class="umid-bar" aria-hidden="true"><i data-bar></i>' +
+        '<span class="talhao-top"><span class="talhao-nome">' + f.esc(x.nome) + '</span><span data-pill></span></span>' +
+        '<span class="talhao-cultura">' + (x.cultura === 'LIMAO' ? '🍋 ' : '🍊 ') + f.esc(x.culturaRotulo + ' ' + x.variedade) + '</span>' +
+        '<span class="talhao-umid"><span class="v num" data-umid>--</span><span class="t" data-tend></span></span>' +
+        '<span class="umid-bar" aria-hidden="true"><i data-bar></i>' +
         '<span class="lim" style="left:' + x.limiteCritico + '%" title="Limite crítico"></span>' +
-        '<span class="lim" style="left:' + x.umidadeAlvo + '%;opacity:.25" title="Umidade alvo"></span></div>' +
-        '<div class="talhao-estado" data-estado></div>';
+        '<span class="lim" style="left:' + x.umidadeAlvo + '%;opacity:.25" title="Umidade alvo"></span></span>' +
+        '<span class="talhao-estado" data-estado></span>';
       b.addEventListener('click', function () { abrirDetalhes(x.id); });
       mapa.appendChild(b);
     });

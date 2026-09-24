@@ -9,12 +9,12 @@
     el.className = 'toast ' + sev.cls;
     el.setAttribute('role', opcoes.severidade === 'EMERGENCIA' ? 'alert' : 'status');
     el.innerHTML = '<span aria-hidden="true">' + (opcoes.icone || sev.icone) + '</span>' +
-      '<div><b>' + f.esc(opcoes.titulo) + '</b>' + f.esc(opcoes.descricao || '') + '</div>' +
+      '<div><b>' + f.esc(opcoes.titulo) + '</b><span class="desc">' + f.esc(opcoes.descricao || '') + '</span></div>' +
       '<button type="button" aria-label="Fechar notificação">✕</button>';
     el.querySelector('button').addEventListener('click', function () { el.remove(); });
     var caixa = document.getElementById('toasts');
     caixa.appendChild(el);
-    while (caixa.children.length > 4) caixa.firstElementChild.remove();
+    while (caixa.children.length > 3) caixa.firstElementChild.remove();
     setTimeout(function () { el.remove(); }, opcoes.severidade === 'EMERGENCIA' ? 12000 : 7000);
   };
 })();

@@ -21,7 +21,11 @@
       var largura = 0;
       new ResizeObserver(function () {
         var w = Math.round(container.clientWidth);
-        if (w !== largura && container.__cfg) { largura = w; container.__render(container, container.__cfg); }
+        if (w !== largura && container.__cfg) {
+          largura = w;
+          // Redesenha no próximo quadro: evita o erro "ResizeObserver loop completed with undelivered notifications"
+          requestAnimationFrame(function () { container.__render(container, container.__cfg); });
+        }
       }).observe(container);
     }
   }

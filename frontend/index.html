@@ -141,6 +141,7 @@
         <div class="sim-group" role="group" aria-labelledby="sim-res-label">
           <span id="sim-res-label">💧 Reservatório</span>
           <div class="sim-row">
+            <button class="btn btn-sm" type="button" data-reservatorio="-5">↓ Reduzir 5%</button>
             <button class="btn btn-sm" type="button" data-reservatorio="-10">↓ Reduzir 10%</button>
             <button class="btn btn-sm" type="button" data-reservatorio="10">↑ Reabastecer 10%</button>
             <button class="btn btn-sm btn-danger" type="button" id="sim-emergencia">🚨 Simular emergência</button>
@@ -224,14 +225,14 @@
           <div><dt>👤 O operador precisa agir?</dt><dd id="decisao-operador">--</dd></div>
           <div class="destaque" style="background:var(--surface-2);border-color:var(--border)"><dt>📊 Impacto da decisão</dt><dd id="decisao-impacto">--</dd></div>
         </dl>
-        <nav class="hierarquia" aria-label="Hierarquia das regras (regra ativa destacada)">
+        <div class="hierarquia" role="group" aria-label="Hierarquia das regras (regra ativa destacada)">
           <ol>
             <li><span class="regra-chip" data-regra="P1"><b>P1</b> 🚨 Bloqueio de emergência</span></li>
             <li><span class="regra-chip" data-regra="P2"><b>P2</b> 🔴 Irrigação crítica</span></li>
             <li><span class="regra-chip" data-regra="P3"><b>P3</b> 🟡 Operação normal</span></li>
             <li><span class="regra-chip" data-regra="P4"><b>P4</b> 👤 Controle manual</span></li>
           </ol>
-        </nav>
+        </div>
       </section>
 
       <section class="card span-4" id="reservatorio" aria-labelledby="res-titulo">
@@ -304,7 +305,7 @@
         <div class="card-head">
           <div>
             <h2 class="card-title" id="g-umid-titulo">📈 Umidade dos talhões</h2>
-            <p class="card-sub">Últimas leituras gravadas no banco (%). Linha tracejada: limite crítico de 25%.</p>
+            <p class="card-sub">Últimas leituras gravadas no banco (%), por hora na fazenda. Linha tracejada: limite crítico de 25%.</p>
           </div>
         </div>
         <div class="legend" id="g-umid-legenda"></div>
@@ -316,7 +317,7 @@
         <div class="card-head">
           <div>
             <h2 class="card-title" id="g-res-titulo">💧 Nível do reservatório</h2>
-            <p class="card-sub">Histórico (%). Faixas de atenção (30%) e de bloqueio (15%).</p>
+            <p class="card-sub">Histórico (%) por hora na fazenda. Faixas de atenção (30%) e de bloqueio (15%).</p>
           </div>
         </div>
         <div class="chart" id="g-reservatorio" tabindex="0" role="img" aria-label="Gráfico do nível do reservatório ao longo do tempo"></div>
@@ -549,6 +550,7 @@
   <script src="src/components/relatorio.js"></script>
   <script src="src/components/acessibilidade.js"></script>
   <script src="src/components/saude.js"></script>
+  <script src="src/components/alertas.js"></script>
   <script src="src/app.js"></script>
 </body>
 </html>

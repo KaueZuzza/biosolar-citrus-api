@@ -22,7 +22,8 @@ BS.app = (function () {
     if (!r.ok) return;
     var t = r.dados;
     ultimaTelemetria = t;
-    [C.statusGeral, C.indicadores, C.motorDecisao, C.reservatorio, C.mapaTalhoes, C.controleAspersores, C.indice, C.painelSimulacao]
+    [C.statusGeral, C.indicadores, C.motorDecisao, C.reservatorio, C.mapaTalhoes, C.controleAspersores, C.indice,
+      C.painelSimulacao, C.alertas]
       .forEach(function (c) { seguro(c, t); });
     C.notificacoes.processar(t.eventosRecentes);
   }

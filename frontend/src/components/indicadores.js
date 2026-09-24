@@ -35,8 +35,9 @@ BS.componentes.indicadores = (function () {
     kpi('kpi-indice', String(ind.valor), ind.valor, BS.status.indice[ind.classificacao].cls,
       BS.status.indice[ind.classificacao].icone + ' ' + ind.rotulo);
 
+    // Barra = cobertura solar do consumo; com as bombas paradas não há consumo, então fica vazia
     var e = tel.energia;
-    kpi('kpi-energia', f.num(e.consumoKw, 1) + ' kW', e.coberturaSolar, '',
+    kpi('kpi-energia', f.num(e.consumoKw, 1) + ' kW', e.consumoKw > 0 ? e.coberturaSolar : 0, '',
       e.consumoKw > 0
         ? '☀️ ' + f.num(e.coberturaSolar, 0) + '% solar (geração ' + f.num(e.geracaoSolarKw, 1) + ' kW)'
         : 'Bombas paradas · geração solar ' + f.num(e.geracaoSolarKw, 1) + ' kW');
