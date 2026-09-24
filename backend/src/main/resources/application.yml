@@ -20,6 +20,10 @@ spring:
     resources:
       # ../frontend primeiro: editar o dashboard nao exige rebuild durante o desenvolvimento
       static-locations: file:../frontend/, classpath:/static/
+      # O navegador sempre revalida o dashboard: evita exibir arquivos antigos apos uma atualizacao (git pull)
+      cache:
+        cachecontrol:
+          no-cache: true
 
 server:
   port: ${PORT:8080}
