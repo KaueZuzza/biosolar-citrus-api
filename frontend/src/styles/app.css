@@ -337,30 +337,24 @@ body.offline .offline-banner { display: block; }
 .tanque-info dd { margin: 0; font-weight: 700; text-align: right; }
 
 /* ---- Mapa operacional dos talhões -------------------------------------------- */
+/* Qualquer número de talhões: o reservatório no topo e os talhões em grade responsiva */
 .mapa {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  gap: 18px 0;
-  position: relative;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
 }
-.mapa .hub { grid-column: 2; grid-row: 1 / span 2; align-self: center; justify-self: center; z-index: 2; }
-.mapa .talhao[data-pos="A"] { grid-column: 1; grid-row: 1; }
-.mapa .talhao[data-pos="B"] { grid-column: 3; grid-row: 1; }
-.mapa .talhao[data-pos="C"] { grid-column: 1; grid-row: 2; }
-.mapa .talhao[data-pos="D"] { grid-column: 3; grid-row: 2; }
+.mapa .hub { grid-column: 1 / -1; }
 
 .hub-box {
-  width: 118px; padding: 12px 8px;
-  border-radius: 50%;
-  aspect-ratio: 1;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 16px;
+  padding: 10px 16px;
+  border-radius: 999px;
   background: var(--water-soft);
-  border: 3px solid var(--water);
+  border: 2px solid var(--water);
   text-align: center;
 }
 .hub-box .v { font-size: 1.35rem; font-weight: 850; }
-.hub-box .l { font-size: 0.66rem; font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; }
+.hub-box .l { font-size: 0.72rem; font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; }
 .hub-box.emerg { background: var(--crit-bg); border-color: var(--crit); }
 .hub-box.warn { border-color: var(--warn); }
 
@@ -376,22 +370,18 @@ body.offline .offline-banner { display: block; }
   display: flex; flex-direction: column; gap: 8px;
   transition: border-color .2s, box-shadow .2s, transform .1s;
   overflow: hidden;
+  color: inherit;
 }
 .talhao:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
-.talhao::after {  /* tubulação até o reservatório */
-  content: "";
-  position: absolute; top: 50%;
-  width: 18px; height: 6px;
-  background: var(--border-strong);
+.talhao::before {  /* faixa de água no topo do cartão quando a bomba está ligada */
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: transparent;
 }
-.talhao[data-pos="A"]::after, .talhao[data-pos="C"]::after { right: -2px; }
-.talhao[data-pos="B"]::after, .talhao[data-pos="D"]::after { left: -2px; }
-.talhao.irrigando::after {
-  background: repeating-linear-gradient(90deg, var(--water) 0 6px, color-mix(in srgb, var(--water) 30%, transparent) 6px 12px);
-  background-size: 24px 6px;
-  animation: fluxo .6s linear infinite;
+.talhao.irrigando::before {
+  background: repeating-linear-gradient(90deg, var(--water) 0 8px, color-mix(in srgb, var(--water) 30%, transparent) 8px 16px);
+  background-size: 32px 4px;
+  animation: fluxo .8s linear infinite;
 }
-@keyframes fluxo { to { background-position: 24px 0; } }
+@keyframes fluxo { to { background-position: 32px 0; } }
 .talhao.st-ATENCAO { border-color: var(--warn); }
 .talhao.st-CRITICO { border-color: var(--crit); background: linear-gradient(180deg, var(--crit-bg), var(--surface-2) 70%); }
 .talhao.bloqueado {
@@ -416,20 +406,8 @@ body.offline .offline-banner { display: block; }
 .gotas i:nth-child(2) { animation-delay: .2s; }
 .gotas i:nth-child(3) { animation-delay: .4s; }
 @keyframes gota { 0% { transform: translateY(-4px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(5px); opacity: 0; } }
-
 @media (max-width: 720px) {
-  .mapa { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .mapa .hub { grid-column: 1 / -1; grid-row: 1; }
-  .mapa .talhao[data-pos="A"] { grid-column: 1; grid-row: 2; }
-  .mapa .talhao[data-pos="B"] { grid-column: 2; grid-row: 2; }
-  .mapa .talhao[data-pos="C"] { grid-column: 1; grid-row: 3; }
-  .mapa .talhao[data-pos="D"] { grid-column: 2; grid-row: 3; }
-  .talhao::after { display: none; }
   .talhao-umid .v { font-size: 1.6rem; }
-}
-@media (max-width: 420px) {
-  .mapa { grid-template-columns: 1fr; }
-  .mapa .talhao[data-pos] { grid-column: 1; grid-row: auto; }
 }
 
 /* ---- Controle dos aspersores --------------------------------------------------- */

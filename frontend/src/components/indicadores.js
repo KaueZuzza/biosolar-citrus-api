@@ -19,14 +19,18 @@ BS.componentes.indicadores = (function () {
       stRes.icone + ' ' + stRes.rotulo + ' · ' + f.num(r.volumeM3, 0) + ' de ' + f.num(r.capacidadeM3, 0) + ' m³');
 
     var talhoes = tel.talhoes;
-    var media = talhoes.reduce(function (s, x) { return s + x.umidade; }, 0) / talhoes.length;
-    var menor = talhoes.slice().sort(function (a, b) { return a.umidade - b.umidade; })[0];
-    var stMenor = BS.status.talhao[menor.status];
-    kpi('kpi-umidade', f.pct(media), media, stMenor.cls,
-      'Menor: ' + menor.nome + ' ' + f.pct(menor.umidade) + ' ' + stMenor.icone);
+    if (talhoes.length) {
+      var media = talhoes.reduce(function (s, x) { return s + x.umidade; }, 0) / talhoes.length;
+      var menor = talhoes.slice().sort(function (a, b) { return a.umidade - b.umidade; })[0];
+      var stMenor = BS.status.talhao[menor.status];
+      kpi('kpi-umidade', f.pct(media), media, stMenor.cls,
+        'Menor: ' + menor.nome + ' ' + f.pct(menor.umidade) + ' ' + stMenor.icone);
+    } else {
+      kpi('kpi-umidade', '—', 0, '', 'Nenhum talhão ativo');
+    }
 
     var ligados = talhoes.filter(function (x) { return x.aspersorLigado; }).length;
-    kpi('kpi-aspersores', ligados + ' / ' + talhoes.length, ligados / talhoes.length * 100,
+    kpi('kpi-aspersores', ligados + ' / ' + talhoes.length, talhoes.length ? ligados / talhoes.length * 100 : 0,
       r.bloqueioEmergencia ? 'crit' : '',
       r.bloqueioEmergencia ? '🔒 Bloqueados pela proteção hídrica'
         : ligados ? 'Consumo ' + f.num(r.consumoM3h, 0) + ' m³/h de água' : 'Todas as bombas desligadas');

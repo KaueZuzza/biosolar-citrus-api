@@ -2,7 +2,8 @@
 @page { margin: 14mm; }
 
 body { background: #fff !important; color: #000 !important; }
-.topbar, .toasts, .skip-link, .sim-panel, footer.rodape, #vlibras { display: none !important; }
+.topbar, .toasts, .skip-link, .sim-panel, footer.rodape, #vlibras,
+.carregamento, .painel-demo, .ajuda, .ajuda-pop { display: none !important; }
 
 /* Impressão do relatório: somente a área dedicada */
 body.imprimindo > *:not(#area-impressao) { display: none !important; }

@@ -231,7 +231,7 @@ class CadastroIntegrationTest {
         mvc.perform(get("/configuracao"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reservatorio.limiteCritico", is(15.0)))
-                .andExpect(jsonPath("$.regras.maximoTalhoes", is(12)))
+                .andExpect(jsonPath("$.regras.maximoTalhoes", is(8)))
                 .andExpect(jsonPath("$.bancoDisponivel", is(true)));
         mvc.perform(put("/configuracao/usina").contentType(MediaType.APPLICATION_JSON).content("{\"potenciaSolarPicoKw\":-1}"))
                 .andExpect(status().isBadRequest());

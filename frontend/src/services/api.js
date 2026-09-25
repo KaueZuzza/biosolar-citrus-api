@@ -34,6 +34,8 @@
   BS.api = {
     get: function (caminho) { return requisitar('GET', caminho); },
     post: function (caminho, corpo) { return requisitar('POST', caminho, corpo || {}); },
+    put: function (caminho, corpo) { return requisitar('PUT', caminho, corpo || {}); },
+    del: function (caminho) { return requisitar('DELETE', caminho); },
     url: function (caminho) { return BS.config.apiBase + caminho; },
     aoMudarConexao: function (fn) { ouvintes.push(fn); }
   };

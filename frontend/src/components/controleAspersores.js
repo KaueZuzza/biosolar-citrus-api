@@ -2,7 +2,6 @@
  * quem decide é o servidor, e a recusa (HTTP 409) é exibida com o motivo retornado pela API. */
 BS.componentes.controleAspersores = (function () {
   var f = BS.fmt;
-  var criado = false;
 
   var TITULOS_RECUSA = {
     BLOQUEIO_DE_EMERGENCIA: ['🚨 AÇÃO BLOQUEADA', 'O reservatório está abaixo do limite de segurança. O sistema de proteção hídrica impede o acionamento das bombas.'],
@@ -44,32 +43,47 @@ BS.componentes.controleAspersores = (function () {
     BS.dom.anunciar(info[0] + '. ' + d.mensagem, true);
   }
 
-  function criar(talhoes) {
+  function criarItem(x) {
+    var li = document.createElement('li');
+    li.className = 'controle-item';
+    li.setAttribute('data-id', x.id);
+    li.innerHTML = '<div><div class="nome" data-nome></div><div class="estado" data-estado></div></div>' +
+      '<button class="btn" type="button" data-acao></button>';
+    return li;
+  }
+
+  /** Um item por talhão ativo, acompanhando o cadastro (sem recriar os existentes, para manter o foco). */
+  function sincronizar(talhoes) {
     var lista = document.getElementById('controle-lista');
-    lista.innerHTML = talhoes.map(function (x) {
-      return '<li class="controle-item" data-id="' + x.id + '">' +
-        '<div><div class="nome">' + (x.cultura === 'LIMAO' ? '🍋 ' : '🍊 ') + f.esc(x.nome) +
-        ' <span class="muted small">· ' + f.esc(x.bombaId) + '</span></div>' +
-        '<div class="estado" data-estado></div></div>' +
-        '<button class="btn" type="button" data-acao></button></li>';
-    }).join('');
-    lista.addEventListener('click', function (e) {
-      var botao = e.target.closest('[data-acao]');
-      if (!botao || botao.getAttribute('aria-busy') === 'true') return;
-      var id = botao.closest('[data-id]').getAttribute('data-id');
-      acionar(id, botao.getAttribute('data-ligar') === 'true', botao);
-    });
-    criado = true;
+    if (!lista.__ouvindo) {
+      lista.__ouvindo = true;
+      lista.addEventListener('click', function (e) {
+        var botao = e.target.closest('[data-acao]');
+        if (!botao || botao.getAttribute('aria-busy') === 'true') return;
+        var id = botao.closest('[data-id]').getAttribute('data-id');
+        acionar(id, botao.getAttribute('data-ligar') === 'true', botao);
+      });
+    }
+    var ids = talhoes.map(function (x) { return x.id; });
+    BS.dom.$$('li[data-id]', lista).forEach(function (li) { if (ids.indexOf(li.getAttribute('data-id')) < 0) li.remove(); });
+    var ordemAtual = BS.dom.$$('li[data-id]', lista).map(function (li) { return li.getAttribute('data-id'); });
+    if (ordemAtual.join('|') !== ids.join('|')) {
+      talhoes.forEach(function (x) {
+        lista.appendChild(lista.querySelector('li[data-id="' + CSS.escape(x.id) + '"]') || criarItem(x));
+      });
+    }
   }
 
   function atualizar(tel) {
-    if (!criado) criar(tel.talhoes);
+    sincronizar(tel.talhoes);
     var bloqueio = tel.reservatorio.bloqueioEmergencia;
     document.getElementById('controle').classList.toggle('bloqueio-ativo', bloqueio);
 
     tel.talhoes.forEach(function (x) {
-      var item = document.querySelector('#controle-lista [data-id="' + x.id + '"]');
+      var item = document.querySelector('#controle-lista [data-id="' + CSS.escape(x.id) + '"]');
       if (!item) return;
+      BS.dom.html(item.querySelector('[data-nome]'), (x.cultura === 'LIMAO' ? '🍋 ' : '🍊 ') + f.esc(x.nome) +
+        ' <span class="muted small">· ' + f.esc(x.bombaId) + '</span>');
       var estado;
       if (x.aspersorLigado) estado = '<span class="pill ok">🟢 LIGADO</span> <span class="muted">' + BS.status.modo[x.modoAcionamento] + '</span>';
       else if (bloqueio) estado = '<span class="pill emerg">🔒 BLOQUEADO</span>';

@@ -22,10 +22,12 @@ BS.app = (function () {
     if (!r.ok) return;
     var t = r.dados;
     ultimaTelemetria = t;
-    [C.statusGeral, C.indicadores, C.motorDecisao, C.reservatorio, C.mapaTalhoes, C.controleAspersores, C.indice,
-      C.painelSimulacao, C.alertas]
+    BS.cores.sincronizar(t.talhoes.map(function (x) { return x.id; }));
+    [C.statusGeral, C.indicadores, C.motorDecisao, C.reservatorio, C.mapaTalhoes, C.resumoTalhoes, C.controleAspersores,
+      C.indice, C.alertas, C.abas, C.painelSimulacao]
       .forEach(function (c) { seguro(c, t); });
     C.notificacoes.processar(t.eventosRecentes);
+    C.carregamento.telemetriaRecebida(t);
   }
 
   async function carregarEventos() {
@@ -40,7 +42,9 @@ BS.app = (function () {
 
   async function carregarIndicadores() {
     var r = await BS.telemetriaService.indicadores();
-    if (r.ok) C.graficos.atualizarIndicadores(r.dados);
+    if (!r.ok) return;
+    seguro({ atualizar: C.graficos.atualizarIndicadores }, r.dados);
+    seguro(C.periodo, r.dados);
   }
 
   async function carregarSaude() {
@@ -81,11 +85,14 @@ BS.app = (function () {
   });
 
   function iniciar() {
+    C.carregamento.iniciar();
+    C.abas.iniciar();
     C.historico.iniciar();
     C.notificacoes.iniciar();
     C.painelSimulacao.iniciar();
     C.relatorio.iniciar();
     C.acessibilidade.iniciar();
+    C.gestao.iniciar();
     document.getElementById('btn-voz').addEventListener('click', falarStatus);
 
     var i = BS.config.intervalos;

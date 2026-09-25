@@ -23,7 +23,7 @@ BS.componentes.notificacoes = (function () {
   var f = BS.fmt;
   // Tipos que merecem notificação (evolução do nível e ações de simulação ficam só no histórico)
   var RELEVANTES = ['BLOQUEIO_EMERGENCIA', 'IRRIGACAO_CRITICA', 'IRRIGACAO_BLOQUEADA', 'RECUPERACAO_SISTEMA',
-    'ALERTA_UMIDADE', 'ALERTA_RESERVATORIO', 'COMANDO_MANUAL', 'COMANDO_RECUSADO', 'IRRIGACAO_CONCLUIDA', 'PROTECAO_SATURACAO'];
+    'ALERTA_UMIDADE', 'ALERTA_RESERVATORIO', 'COMANDO_MANUAL', 'COMANDO_RECUSADO', 'IRRIGACAO_CONCLUIDA', 'PROTECAO_SATURACAO', 'CADASTRO'];
   var itens = [];
   var ultimoId = null;
 

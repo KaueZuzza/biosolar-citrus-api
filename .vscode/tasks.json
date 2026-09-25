@@ -1,0 +1,68 @@
+{
+  // Tarefas do BioSolar Citrus (Terminal > Run Task...). O F5 usa "BioSolar: preparar ambiente" antes de subir a API.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "BioSolar: preparar ambiente (JDK 21 + PostgreSQL)",
+      "detail": "Garante o JDK 21 portatil, o PostgreSQL do projeto na porta do .env e o .env (instala na primeira vez)",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\iniciar.ps1", "-SomentePreparar"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "revealProblems": "onProblem", "panel": "shared", "showReuseMessage": false }
+    },
+    {
+      "label": "BioSolar: preparar ambiente (H2, sem PostgreSQL)",
+      "detail": "Plano B da apresentacao: so o JDK 21; o banco e um arquivo H2 em backend/data",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\iniciar.ps1", "-SomentePreparar", "-H2"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "revealProblems": "onProblem", "panel": "shared", "showReuseMessage": false }
+    },
+    {
+      "label": "BioSolar: iniciar pelo script (API + dashboard)",
+      "detail": "Alternativa ao F5: sobe tudo pelo Maven no terminal (scripts\\iniciar.ps1)",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\iniciar.ps1"],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "biosolar",
+        "pattern": { "regexp": "^__nunca__$" },
+        "background": { "activelyMatches": true, "beginsPattern": "BioSolar Citrus ->", "endsPattern": "Started BioSolarCitrusApplication" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "BioSolar: rodar testes",
+      "type": "process",
+      "command": "${workspaceFolder}\\backend\\mvnw.cmd",
+      "args": ["-B", "test"],
+      "options": {
+        "cwd": "${workspaceFolder}\\backend",
+        "env": { "JAVA_HOME": "${env:LOCALAPPDATA}\\BioSolarDev\\jdk-21" }
+      },
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "BioSolar: registrar banco no pgAdmin",
+      "detail": "Adiciona ao pgAdmin 4 o mesmo PostgreSQL/banco usado pela API (scripts\\pgadmin.ps1)",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\scripts\\pgadmin.ps1"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "BioSolar: abrir dashboard no navegador",
+      "type": "process",
+      "command": "cmd.exe",
+      "args": ["/d", "/c", "start", "", "http://localhost:8080"],
+      "problemMatcher": [],
+      "presentation": { "reveal": "never" }
+    }
+  ]
+}

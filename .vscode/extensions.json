@@ -1,0 +1,4 @@
+{
+  // Necessaria para o F5 (Java): o VS Code sugere instalar ao abrir a pasta
+  "recommendations": ["vscjava.vscode-java-pack"]
+}

@@ -49,11 +49,14 @@ import br.com.biosolar.citrus.service.EstadoFazendaService.AlteracaoCadastro;
 @Service
 public class CadastroService {
 
-    public static final int MAXIMO_TALHOES = 12;
+    /** Limite de talhoes ativos: capacidade do reservatorio e 8 cores distinguiveis nos graficos. */
+    public static final int MAXIMO_TALHOES = 8;
     /** Limite da irrigacao critica (P2) definido pelo regulamento para novos talhoes. */
     public static final double LIMITE_CRITICO_PADRAO = 25.0;
 
     private static final Pattern CODIGO = Pattern.compile("[A-Z0-9]{1,10}");
+    private static final String MENSAGEM_LEITURA_INDISPONIVEL = "Banco de dados indisponível no momento: o cadastro não "
+            + "pode ser consultado agora. A automação continua funcionando; tente novamente em alguns segundos.";
 
     private final EstadoFazendaService estado;
     private final TalhaoRepository talhaoRepository;
@@ -323,12 +326,12 @@ public class CadastroService {
 
     private <T> T lerDoBanco(java.util.function.Supplier<T> consulta) {
         if (estado.isBancoEmEspera()) {
-            throw new BancoIndisponivelException(EstadoFazendaService.MENSAGEM_BANCO_INDISPONIVEL);
+            throw new BancoIndisponivelException(MENSAGEM_LEITURA_INDISPONIVEL);
         }
         try {
             return transacaoLeitura.execute(status -> consulta.get());
         } catch (DataAccessException | TransactionException e) {
-            throw new BancoIndisponivelException(EstadoFazendaService.MENSAGEM_BANCO_INDISPONIVEL);
+            throw new BancoIndisponivelException(MENSAGEM_LEITURA_INDISPONIVEL);
         }
     }
 

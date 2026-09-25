@@ -47,19 +47,42 @@ BS.componentes.painelSimulacao = (function () {
     document.getElementById('sim-restaurar').addEventListener('click', function (e) {
       var botao = e.currentTarget;
       if (botao.getAttribute('aria-busy') === 'true') return;
-      if (window.confirm('Restaurar o cenário de demonstração? O histórico de eventos e leituras será reiniciado no servidor.')) {
+      if (window.confirm('Restaurar o cenário de demonstração?\n\nA fazenda volta aos níveis iniciais cadastrados ' +
+          '(umidade de cada talhão e nível do reservatório), os aspersores desligam e o histórico de eventos e ' +
+          'leituras é reiniciado. O cadastro dos talhões é mantido.')) {
         executar(function () { return s.restaurar(); }, botao);
       }
     });
 
-    var toggle = document.getElementById('sim-toggle');
-    toggle.addEventListener('click', function () {
-      var corpo = document.getElementById('sim-body');
-      var abrir = corpo.hidden;
-      corpo.hidden = !abrir;
-      toggle.setAttribute('aria-expanded', String(abrir));
-      toggle.textContent = abrir ? 'Ocultar' : 'Mostrar';
+    // Painel lateral não modal: o dashboard continua visível enquanto a demonstração acontece
+    var botaoDemo = document.getElementById('btn-demo');
+    var painel = document.getElementById('painel-demo');
+    function abrir(sim) {
+      painel.hidden = !sim;
+      botaoDemo.setAttribute('aria-expanded', String(sim));
+      if (sim) document.getElementById('sim-fechar').focus();
+      else botaoDemo.focus();
+    }
+    botaoDemo.addEventListener('click', function () { abrir(painel.hidden); });
+    document.getElementById('sim-fechar').addEventListener('click', function () { abrir(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !painel.hidden && !document.querySelector('dialog[open]')) abrir(false);
     });
+  }
+
+  /** Opções do seletor de talhão acompanham o cadastro (mantendo a seleção atual). */
+  function sincronizarTalhoes(talhoes) {
+    var select = document.getElementById('sim-talhao');
+    var chave = talhoes.map(function (x) { return x.id + '=' + x.nome; }).join('|');
+    if (select.__chave === chave) return;
+    select.__chave = chave;
+    var anterior = select.value;
+    select.innerHTML = talhoes.map(function (x) {
+      return '<option value="' + BS.fmt.esc(x.id) + '">' + BS.fmt.esc(x.nome) + '</option>';
+    }).join('');
+    var ids = talhoes.map(function (x) { return x.id; });
+    if (ids.indexOf(anterior) >= 0) select.value = anterior;
+    else if (ids.indexOf('C') >= 0) select.value = 'C';   // roteiro da banca começa pelo talhão arenoso
   }
 
   function atualizar(tel) {
@@ -71,7 +94,9 @@ BS.componentes.painelSimulacao = (function () {
     var pausa = document.getElementById('sim-pausa');
     BS.dom.attr(pausa, 'aria-pressed', String(sim.pausada));
     BS.dom.texto(pausa, sim.pausada ? '▶ Retomar' : '⏸ Pausar');
-    document.querySelector('.sim-panel').hidden = !sim.controlesHabilitados;
+    sincronizarTalhoes(tel.talhoes);
+    document.getElementById('btn-demo').hidden = !sim.controlesHabilitados;
+    if (!sim.controlesHabilitados) document.getElementById('painel-demo').hidden = true;
   }
 
   return { iniciar: iniciar, atualizar: atualizar };

@@ -1,0 +1,39 @@
+{
+  // F5 (Run and Debug): prepara JDK 21 + PostgreSQL, sobe a API Spring Boot e abre o dashboard no navegador.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "BioSolar Citrus (API + dashboard)",
+      "request": "launch",
+      "mainClass": "br.com.biosolar.citrus.BioSolarCitrusApplication",
+      "projectName": "biosolar-citrus-api",
+      "cwd": "${workspaceFolder}\\backend",
+      "javaExec": "${env:LOCALAPPDATA}\\BioSolarDev\\jdk-21\\bin\\java.exe",
+      "preLaunchTask": "BioSolar: preparar ambiente (JDK 21 + PostgreSQL)",
+      "console": "internalConsole",
+      "serverReadyAction": {
+        "pattern": "Tomcat started on port (\\d+)",
+        "uriFormat": "http://localhost:%s",
+        "action": "openExternally"
+      }
+    },
+    {
+      "type": "java",
+      "name": "BioSolar Citrus (plano B: H2, sem PostgreSQL)",
+      "request": "launch",
+      "mainClass": "br.com.biosolar.citrus.BioSolarCitrusApplication",
+      "projectName": "biosolar-citrus-api",
+      "cwd": "${workspaceFolder}\\backend",
+      "javaExec": "${env:LOCALAPPDATA}\\BioSolarDev\\jdk-21\\bin\\java.exe",
+      "args": "--spring.profiles.active=h2",
+      "preLaunchTask": "BioSolar: preparar ambiente (H2, sem PostgreSQL)",
+      "console": "internalConsole",
+      "serverReadyAction": {
+        "pattern": "Tomcat started on port (\\d+)",
+        "uriFormat": "http://localhost:%s",
+        "action": "openExternally"
+      }
+    }
+  ]
+}

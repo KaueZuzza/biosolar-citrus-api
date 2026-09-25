@@ -1,8 +1,7 @@
 /* Gráficos: umidade dos talhões, nível do reservatório e acionamentos por talhão.
- * Cores: slots categóricos 1-4 na ordem fixa (a cor segue o talhão, nunca a posição). */
+ * Cores: 8 slots categóricos validados; a cor segue o talhão (BS.cores), nunca a posição. */
 BS.componentes.graficos = (function () {
   var f = BS.fmt;
-  var CORES = { A: 'var(--series-1)', B: 'var(--series-2)', C: 'var(--series-3)', D: 'var(--series-4)' };
 
   function legenda(id, itens, quadrado) {
     BS.dom.html(id, itens.map(function (i) {
@@ -19,13 +18,12 @@ BS.componentes.graficos = (function () {
 
   function atualizarHistorico(hist) {
     var pontos = hist.pontos || [];
-    var ids = pontos.length ? Object.keys(pontos[pontos.length - 1].umidades) : ['A', 'B', 'C', 'D'];
-    // Eixo no relógio da fazenda (tempo simulado), o mesmo do cabeçalho e do histórico
-    var rotulos = pontos.map(function (p) { return f.horaSimulada(p.horaSimulada); });
-    var titulos = pontos.map(function (p) { return 'Fazenda ' + f.horaSimulada(p.horaSimulada) + ' · leitura ' + f.hora(p.instante); });
+    var ids = pontos.length ? Object.keys(pontos[pontos.length - 1].umidades) : [];
+    var rotulos = pontos.map(function (p) { return f.hora(p.instante).slice(0, 5); });
+    var titulos = pontos.map(function (p) { return f.hora(p.instante) + ' · fazenda ' + f.horaSimulada(p.horaSimulada); });
 
     var series = ids.map(function (id) {
-      return { nome: 'Talhão ' + id, cor: CORES[id] || 'var(--series-1)', valores: pontos.map(function (p) { return p.umidades[id]; }) };
+      return { nome: 'Talhão ' + id, cor: BS.cores.talhao(id), valores: pontos.map(function (p) { return p.umidades[id]; }) };
     });
     legenda('g-umid-legenda', series);
     BS.charts.linhas(document.getElementById('g-umidade'), {
@@ -47,11 +45,11 @@ BS.componentes.graficos = (function () {
     });
 
     var ultimos = pontos.slice(-20).reverse();
-    tabela('g-umidade-tabela', ['Hora na fazenda'].concat(ids.map(function (id) { return 'Talhão ' + id + ' (%)'; })),
-      ultimos.map(function (p) { return [f.horaSimulada(p.horaSimulada)].concat(ids.map(function (id) { return f.num(p.umidades[id]); })); }));
-    tabela('g-reservatorio-tabela', ['Hora na fazenda', 'Leitura (real)', 'Reservatório (%)', 'Aspersores ligados', 'Bloqueio'],
+    tabela('g-umidade-tabela', ['Horário'].concat(ids.map(function (id) { return 'Talhão ' + id + ' (%)'; })),
+      ultimos.map(function (p) { return [f.hora(p.instante)].concat(ids.map(function (id) { return f.num(p.umidades[id]); })); }));
+    tabela('g-reservatorio-tabela', ['Horário', 'Hora na fazenda', 'Reservatório (%)', 'Aspersores ligados', 'Bloqueio'],
       ultimos.map(function (p) {
-        return [f.horaSimulada(p.horaSimulada), f.hora(p.instante), f.num(p.reservatorio), String(p.aspersoresLigados), p.bloqueioEmergencia ? 'sim' : 'não'];
+        return [f.hora(p.instante), f.horaSimulada(p.horaSimulada), f.num(p.reservatorio), String(p.aspersoresLigados), p.bloqueioEmergencia ? 'sim' : 'não'];
       }));
   }
 

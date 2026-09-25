@@ -9,12 +9,18 @@
   - Banco: le o .env da raiz do projeto (BIOSOLAR_DB_URL etc.). Se o PostgreSQL portatil do
     BioSolar estiver rodando em outra porta, o .env e corrigido automaticamente.
 
+  - -SomentePreparar: faz tudo acima e para antes de subir a API. E a tarefa que o VS Code roda antes do
+    F5 ("BioSolar Citrus"); se o JDK 21 ou o PostgreSQL portatil ainda nao existirem, roda o
+    setup-ambiente.ps1 automaticamente.
+
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\iniciar.ps1
-  powershell -ExecutionPolicy Bypass -File scripts\iniciar.ps1 -H2      # plano B: sem PostgreSQL
+  powershell -ExecutionPolicy Bypass -File scripts\iniciar.ps1 -H2              # plano B: sem PostgreSQL
+  powershell -ExecutionPolicy Bypass -File scripts\iniciar.ps1 -SomentePreparar # usado pelo VS Code
 #>
 param(
     [switch]$H2,
+    [switch]$SomentePreparar,
     [string]$Ferramentas = (Join-Path $env:LOCALAPPDATA 'BioSolarDev')
 )
 
@@ -22,8 +28,16 @@ $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'ambiente.ps1')
 
+# Ambiente portatil (JDK 21 + PostgreSQL): instala na primeira vez --------------
+$faltaJdk = -not (Test-Path (Join-Path $Ferramentas 'jdk-21\bin\java.exe'))
+$faltaPg = -not $H2 -and -not (Test-Path (Join-Path $Ferramentas 'pgdata\PG_VERSION'))
+if ($SomentePreparar -and ($faltaJdk -or $faltaPg)) {
+    Write-Host '[..] Primeira execucao nesta maquina: preparando JDK 21 e PostgreSQL (setup-ambiente.ps1) ...'
+    & (Join-Path $PSScriptRoot 'setup-ambiente.ps1') -Destino $Ferramentas
+}
+
 # Configuracao local da maquina (.env) ---------------------------------------
-$arquivoEnv = Join-Path $raiz '.env'
+$arquivoEnv = Garantir-DotEnv $raiz
 Importar-DotEnv $arquivoEnv
 
 # JDK 21 -----------------------------------------------------------------------
@@ -32,7 +46,8 @@ Configurar-Java21 -Ferramentas $Ferramentas
 # Porta HTTP livre -------------------------------------------------------------
 $portaHttp = if ($env:PORT) { [int]$env:PORT } else { 8080 }
 if (Porta-EmUso $portaHttp) {
-    throw "A porta $portaHttp ja esta em uso (outra instancia da API?). Encerre-a ou defina PORT no .env."
+    throw "A porta $portaHttp ja esta em uso: o BioSolar (ou outro programa) ja esta rodando. Encerre a outra " +
+          "instancia (no VS Code: botao Stop) ou defina PORT no .env."
 }
 
 # PostgreSQL -------------------------------------------------------------------
@@ -80,6 +95,11 @@ if (-not $H2) {
     } else {
         Write-Host "[i] Usando o PostgreSQL configurado em BIOSOLAR_DB_URL ($($url.Host):$($url.Porta)/$($url.Banco))."
     }
+}
+
+if ($SomentePreparar) {
+    Write-Host "[ok] Ambiente pronto: JDK em $env:JAVA_HOME, banco em $(if ($H2) { 'H2' } else { $env:BIOSOLAR_DB_URL })."
+    exit 0
 }
 
 Push-Location (Join-Path $raiz 'backend')

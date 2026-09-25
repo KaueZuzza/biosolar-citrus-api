@@ -82,6 +82,7 @@
       ALERTA_RESERVATORIO: '💧',
       RESERVATORIO_ATUALIZADO: '📉',
       SIMULACAO: '🎬',
+      CADASTRO: '🗂️',
       SISTEMA: '⚙️'
     },
     modo: {
@@ -90,4 +91,27 @@
       DESLIGADO: 'desligado'
     }
   };
+
+  /** Cor de cada talhão nos gráficos: 8 cores validadas para daltonismo (tokens --series-1..8).
+   *  A cor acompanha o talhão (não a posição): um talhão removido libera a sua sem repintar os outros. */
+  BS.cores = (function () {
+    var MAXIMO = 8;
+    var slots = {};
+    function livre() {
+      var usados = Object.keys(slots).map(function (k) { return slots[k]; });
+      for (var i = 1; i <= MAXIMO; i++) if (usados.indexOf(i) < 0) return i;
+      return (usados.length % MAXIMO) + 1;
+    }
+    return {
+      /** Mantém só os talhões atuais; os novos recebem a primeira cor livre, em ordem de código. */
+      sincronizar: function (ids) {
+        Object.keys(slots).forEach(function (id) { if (ids.indexOf(id) < 0) delete slots[id]; });
+        ids.slice().sort().forEach(function (id) { if (!slots[id]) slots[id] = livre(); });
+      },
+      talhao: function (id) {
+        if (!slots[id]) slots[id] = livre();
+        return 'var(--series-' + slots[id] + ')';
+      }
+    };
+  })();
 })();

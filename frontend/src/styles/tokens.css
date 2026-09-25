@@ -2,7 +2,8 @@
    BioSolar Citrus: tokens de tema
    Claro (padrão do SO), Escuro ("centro de controle"), Alto contraste, Escala de cinza.
    Paleta dos gráficos: paleta categórica de referência validada para daltonismo
-   (slots 1-4 na ordem adjacente), com passos próprios para o modo escuro.
+   (slots 1-8 na ordem fixa: a cor segue o talhão pela posição no cadastro), com passos
+   próprios para o modo escuro. Validada com o validador de paleta: 8 talhões no máximo.
    ========================================================================== */
 
 :root {
@@ -44,6 +45,10 @@
   --series-2: #eb6834;
   --series-3: #1baf7a;
   --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
   --series-1-soft: rgba(42, 120, 214, 0.10);
 
   --shadow: 0 1px 2px rgba(16, 24, 20, 0.05), 0 6px 18px rgba(16, 24, 20, 0.06);
@@ -87,6 +92,10 @@
     --series-2: #d95926;
     --series-3: #199e70;
     --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
     --series-1-soft: rgba(57, 135, 229, 0.12);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
   }
@@ -124,6 +133,10 @@
   --series-2: #d95926;
   --series-3: #199e70;
   --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
   --series-1-soft: rgba(57, 135, 229, 0.12);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
 }
