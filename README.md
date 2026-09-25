@@ -66,10 +66,12 @@ API, o estado é **restaurado do banco** e as regras de segurança são reavalia
 | Camada | Tecnologia |
 |---|---|
 | Backend | Java 21, Spring Boot 3.5.16 (Web, Data JPA, Validation), Maven Wrapper |
-| Banco | PostgreSQL 17 + Flyway (migração `V1__criar_tabelas.sql`); H2 apenas em testes e no perfil de contingência |
+| Banco | PostgreSQL 17 + Flyway (migrações `V1` a `V3` em `db/migration`); H2 apenas em testes e no perfil de contingência |
 | Frontend | HTML5 semântico, CSS (tokens de tema), JavaScript sem build, gráficos SVG próprios |
+| Exportação | OpenPDF (PDF com gráficos vetoriais), Apache POI (Excel .xlsx), Spring Mail (envio SMTP pelo servidor) |
+| Assistente | Citrus: reconhecimento de fala do navegador (Web Speech API, pt-BR) + interpretação e dados no servidor |
 | Acessibilidade | ARIA, foco visível, navegação por teclado, Web Speech API, VLibras (opcional) |
-| Testes | JUnit 5, AssertJ, Spring Boot Test + MockMvc |
+| Testes | JUnit 5, AssertJ, Spring Boot Test + MockMvc, GreenMail (SMTP em memória) |
 
 ## Endpoints
 
@@ -85,8 +87,18 @@ Base: `http://localhost:8080`
 | GET | `/historico?limite=240` | Série temporal para os gráficos |
 | GET | `/indicadores` | Índice, autonomia, acionamentos por talhão, energia e água |
 | GET | `/saude` | Status da API, do banco, do simulador, dos sensores e dos atuadores |
-| GET | `/relatorio` · `/relatorio/csv` | Relatório operacional (JSON) e exportação CSV |
+| GET | `/relatorio` · `/relatorio/csv` | Relatório operacional (JSON) e exportação CSV (dados brutos) |
+| GET | `/exportacao/pdf` · `/exportacao/pdf?download=true` | **PDF** do relatório (logo, indicadores, reservatório, talhões, irrigação, alertas, eventos, gráficos, paginação) |
+| GET | `/exportacao/excel` | **Planilha .xlsx** com as abas Resumo, Talhões, Reservatório, Irrigação, Eventos e Histórico |
+| GET | `/exportacao/whatsapp` | Mensagem curta de status (texto + link `wa.me` pronto) |
+| GET · POST | `/exportacao/email` | Situação do envio (sem expor credenciais) · envia PDF/Excel por e-mail pelo servidor. `400` e-mail inválido · `429` limite por hora · `502` SMTP recusou · `503` SMTP não configurado |
+| POST | `/assistente/comando` | **Citrus**: `{"texto": "Citrus, quero o status"}` → resposta em texto, versão para voz e ação para o painel |
+| GET | `/assistente/exemplos` | Perguntas sugeridas pelo Citrus |
 | POST | `/simulacao/velocidade` · `/pausa` · `/umidade` · `/reservatorio` · `/emergencia` · `/restaurar` | Painel de demonstração: altera **condições físicas** no servidor; as decisões continuam com o motor de regras |
+| GET · POST | `/talhoes` | **Cadastro**: lista (inclusive arquivados) e cadastra talhões. `201` criado · `400` dados inválidos · `409` código repetido/limite de 8 · `503` banco fora do ar |
+| GET · PUT · DELETE | `/talhoes/{id}` | Consulta, edita (o código não muda) e **exclui da operação** (arquiva: o histórico é preservado) |
+| POST · DELETE | `/talhoes/{id}/reativar` · `/talhoes/{id}/definitivo` | Reativa um talhão arquivado · remove do banco um talhão já arquivado |
+| GET · PUT | `/configuracao` · `/configuracao/reservatorio` · `/configuracao/usina` | Reservatório (nome, capacidade, recarga, nível inicial) e usina solar (kWp); limites do regulamento somente leitura |
 
 ### Exemplos
 
@@ -187,13 +199,13 @@ O cenário inicial resulta em **81/100** (H = 67, S = 91, E = 100).
 | Maven | **Não precisa instalar**: o projeto usa o Maven Wrapper (`backend\mvnw.cmd`) |
 | PostgreSQL 17 | Instalado automaticamente pelo `setup-ambiente.ps1` (portátil), via Docker ou uma instalação já existente |
 | Git | Para clonar o repositório |
-| Navegador | Edge, Chrome ou Firefox atualizados |
-| Internet | Apenas na **primeira** execução (download do JDK, PostgreSQL e dependências Maven) e para o VLibras |
+| Navegador | Edge ou Chrome atualizados (o reconhecimento de voz do Citrus só existe neles); Firefox funciona sem a voz |
+| Internet | Na **primeira** execução (download do JDK, PostgreSQL e dependências Maven), para o VLibras e para o reconhecimento de voz |
 
 ### 1. Clonar e entrar
 
 ```bash
-git clone URL_DO_REPOSITORIO biosolar-citrus
+git clone https://github.com/KaueZuzza/biosolar-citrus-api.git biosolar-citrus
 cd biosolar-citrus
 ```
 
@@ -202,41 +214,52 @@ cd biosolar-citrus
 > ocupam cerca de 100. Em pastas muito profundas o `git clone` falha com "Filename too long". Se precisar,
 > habilite caminhos longos no Git: `git config --global core.longpaths true`.
 
-### 2. Preparar o ambiente (uma única vez)
+### 2. Rodar
+
+**Pelo VS Code (mais simples):**
+
+1. Abra a pasta do projeto no VS Code e aceite instalar a extensão sugerida (**Extension Pack for Java**).
+2. Pressione **F5** e escolha **“BioSolar Citrus (API + dashboard)”**.
+
+O F5 roda antes a tarefa *BioSolar: preparar ambiente*, que:
+- usa o **JDK 21 portátil** do projeto (mesmo com outro Java no sistema);
+- na primeira vez, instala JDK 21 + PostgreSQL 17 sozinho (`setup-ambiente.ps1`, precisa de internet);
+- liga o **PostgreSQL do projeto** na porta gravada no `.env` e corrige o `.env` se a porta mudou.
+
+Quando o servidor sobe, o navegador abre em **http://localhost:8080** com a tela de carregamento, que confere API,
+banco e telemetria. Para parar: botão **Stop** (■). Outras tarefas em *Terminal > Run Task…*: **rodar testes**,
+**registrar banco no pgAdmin**, **iniciar pelo script** e o plano B **H2** (também disponível no F5).
+
+**Pelo PowerShell (sem VS Code):**
 
 ```powershell
+# 1. Prepara o ambiente uma única vez: JDK 21, Maven, PostgreSQL 17 e o banco "biosolar"
+#    (instalado em %LOCALAPPDATA%\BioSolarDev, fora da pasta do projeto, sem administrador)
 powershell -ExecutionPolicy Bypass -File .\scripts\setup-ambiente.ps1
-```
 
-Isso instala, **sem precisar de administrador**, o JDK 21, o Maven e o PostgreSQL 17 em
-`%LOCALAPPDATA%\BioSolarDev` (fora da pasta do projeto) e cria o banco:
+# 2. Sobe o PostgreSQL local (se estiver parado) + API + dashboard
+powershell -ExecutionPolicy Bypass -File .\scripts\iniciar.ps1
+```
 
 | Item | Valor (desenvolvimento local) |
 |---|---|
-| Host / porta | `localhost:5432` |
+| Host / porta | `localhost:5432` (ou a próxima porta livre, ver abaixo) |
 | Banco | `biosolar` |
 | Usuário / senha da aplicação | `biosolar` / `biosolar` |
 | Superusuário do cluster portátil | `postgres` / `postgres` |
 
-> Se o notebook **já tiver um PostgreSQL** na porta 5432, o script avisa e para. Nesse caso, crie o banco
-> no PostgreSQL existente (seção "Banco de dados") **ou** use outra porta: copie `.env.example` para `.env`,
-> defina `BIOSOLAR_DB_URL=jdbc:postgresql://localhost:5433/biosolar` e rode o script de novo.
-
-### 3. Iniciar
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\iniciar.ps1
-```
-
-O script sobe o PostgreSQL portátil (se estiver parado) e a API. Na **primeira execução**, o Maven Wrapper
-baixa o Maven e as dependências (alguns minutos). O **Flyway cria as tabelas** e o backend **cria os dados
-iniciais** (4 talhões, reservatório em 67% e estado do simulador) automaticamente. Nada depende do banco
-de outro computador.
+- Os scripts usam sempre o **JDK 21 portátil** do projeto, mesmo que o Windows tenha outro Java (ex.: 17) no `JAVA_HOME`/PATH.
+- A configuração local fica no **`.env`** da raiz (criado a partir do `.env.example`, fora do Git). Se o computador
+  **já tiver um PostgreSQL** na porta 5432, o PostgreSQL do BioSolar sobe na próxima porta livre (ex.: 5433) e o
+  `.env` é atualizado sozinho. A API também lê o `.env` ao rodar direto pelo `mvnw` ou pela IDE.
+- Na **primeira execução**, o Maven Wrapper baixa o Maven e as dependências (alguns minutos). O **Flyway cria as
+  tabelas** e o backend **cria os dados iniciais** (4 talhões, reservatório em 67% e estado do simulador)
+  automaticamente. Nada depende do banco de outro computador.
 
 > Dica: para usar `.\scripts\iniciar.ps1` diretamente (sem `powershell -ExecutionPolicy Bypass -File`),
 > libere scripts locais uma vez: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
 
-### 4. Abrir e verificar
+### 3. Abrir e verificar
 
 | O quê | Endereço |
 |---|---|
@@ -277,6 +300,31 @@ powershell -ExecutionPolicy Bypass -File .\scripts\iniciar.ps1 -H2
 
 Usa H2 em arquivo (`backend/data/`, fora do Git), ainda persistido **no servidor**.
 
+### Banco de dados no pgAdmin 4
+
+O pgAdmin acessa **o mesmo PostgreSQL e o mesmo banco da aplicação** (não há banco separado):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\pgadmin.ps1   # ou a tarefa do VS Code "BioSolar: registrar banco no pgAdmin"
+```
+
+O script lê a porta do `.env`, faz backup da configuração do pgAdmin e registra o servidor **BioSolar Citrus**
+(grupo *BioSolar Citrus*). Se já estiver registrado, nada muda. No pgAdmin (reabra-o se estava aberto):
+
+1. **Servers > BioSolar Citrus**: senha do usuário `biosolar` (a do `.env`); marque *Salvar senha*.
+2. **Databases > biosolar > Schemas > public > Tables**: `talhao` (cadastro + estado de cada talhão, com bomba e
+   aspersor), `reservatorio`, `estado_simulacao`, `evento`, `leitura_telemetria`, `leitura_talhao`.
+   **Views**: `vw_aspersores` (bombas MB-x, aspersores e sensores SU-x) e `vw_leituras_talhao` (histórico de umidade).
+3. **Relacionamentos**: botão direito em `biosolar` > **ERD For Database**. Cada tabela e coluna importante tem comentário.
+4. **Dados**: botão direito na tabela > *View/Edit Data* > *All Rows* (F5 atualiza).
+
+Sincronização nos dois sentidos:
+- **Aplicação → pgAdmin**: o estado é gravado a cada segundo e cada ação vira um registro em `evento`.
+- **pgAdmin → aplicação**: mudanças de **cadastro** (nome, cultura, limites, bomba, `ativo`, reservatório, usina, ou
+  um talhão inserido) chegam à automação em até 5 s e geram o evento “Cadastro atualizado pelo banco de dados”.
+  Colunas **operacionais** (umidade, aspersor, nível) são medidas pela automação e regravadas a cada ciclo: para
+  mudá-las, use o Painel de demonstração. As restrições (`CHECK`) do banco recusam valores inválidos.
+
 ### Testes
 
 ```powershell
@@ -284,17 +332,30 @@ cd backend
 .\mvnw.cmd test
 ```
 
-19 testes: os 5 exigidos pelo regulamento, mais rearme, prioridade P2 > P4, fim da irrigação no alvo,
-balanço hídrico, índice, CORS, retenção e testes ponta a ponta da API (MockMvc).
+42 testes: os 5 exigidos pelo regulamento, mais rearme, prioridade P2 > P4, fim da irrigação no alvo,
+balanço hídrico, índice, CORS, retenção, testes ponta a ponta da API (MockMvc), cadastro (criar, validar, editar,
+arquivar, reativar, excluir, sincronizar com o banco, restaurar), robustez da gravação no banco, **exportações** (PDF
+com paginação, Excel com abas/filtros/formatos, mensagem do WhatsApp, envio de e-mail com anexos para um SMTP em
+memória, validação e limite de envios) e **Citrus** (cada pergunta, talhão falado por letra, ligar/desligar
+respeitando o bloqueio de emergência, comando desconhecido).
+
+| Teste | Cenário | Resultado esperado |
+|---|---|---|
+| 1 | Reservatório > 15% | Comando manual funciona |
+| 2 | Reservatório < 15% | Todas as bombas desligam |
+| 3 | Umidade < 25% e reservatório > 15% | Aspersor liga automaticamente |
+| 4 | Umidade < 25% e reservatório < 15% | Aspersor **não** liga (nem manualmente) |
+| 5 | Após a emergência | Bombas permanecem desligadas até o rearme |
 
 ## Migração para outro computador
 
-1. **Clonar:** `git clone URL_DO_REPOSITORIO biosolar-citrus`, depois `cd biosolar-citrus`.
-2. **Instalar requisitos:** Git e navegador. O resto vem do passo 3.
+1. **Clonar:** `git clone https://github.com/KaueZuzza/biosolar-citrus-api.git biosolar-citrus`, depois `cd biosolar-citrus`.
+2. **Instalar requisitos:** Git, navegador e (opcional) VS Code. O resto vem do passo 3.
 3. **Configurar o banco:** `powershell -ExecutionPolicy Bypass -File .\scripts\setup-ambiente.ps1` (ou as opções B/C acima).
-4. **Executar:** `powershell -ExecutionPolicy Bypass -File .\scripts\iniciar.ps1`.
+4. **Executar:** F5 no VS Code ou `powershell -ExecutionPolicy Bypass -File .\scripts\iniciar.ps1`.
 5. **Verificar a API:** http://localhost:8080/saude, que deve mostrar `UP` no banco e no simulador.
 6. **Abrir o dashboard:** http://localhost:8080, e antes da apresentação clicar em **↺ Restaurar cenário**.
+7. **(Opcional) E-mail:** configure o SMTP no `.env` (seção "Envio por e-mail").
 
 **O que NÃO é transferido pelo Git** (e não precisa ser):
 
@@ -303,18 +364,21 @@ balanço hídrico, índice, CORS, retenção e testes ponta a ponta da API (Mock
 | Banco de dados físico (`%LOCALAPPDATA%\BioSolarDev\pgdata`, `backend/data/`) | É recriado: Flyway (tabelas) e backend (dados iniciais) |
 | JDK, Maven e PostgreSQL portáteis | Reinstalados pelo `setup-ambiente.ps1` |
 | `backend/target/` | Gerado pelo build |
-| `.env` | Configuração local; o modelo versionado é o `.env.example` |
+| `.env` (inclusive a senha do e-mail) | Configuração local; o modelo versionado é o `.env.example` |
+| `backups/` | Dumps e cópias locais de segurança |
 | Logs, temporários e configurações de IDE | Específicos de cada computador |
 
 ## Segurança e configuração
 
 - **Credenciais:** `biosolar`/`biosolar` e `postgres`/`postgres` são **credenciais de desenvolvimento local**,
   não senhas reais. Para outros valores, use o `.env` (nunca versionado). Não há tokens nem chaves no projeto.
+- **E-mail:** usuário e senha SMTP ficam só no `.env` do servidor; o navegador recebe apenas se o envio está
+  configurado e o remetente. Envio limitado a 5 destinatários e a `BIOSOLAR_SMTP_LIMITE_HORA` envios por hora.
 - **CORS:** por padrão aceita `http://localhost:*`, `http://127.0.0.1:*` (Live Server) e `null` (arquivo aberto
   com duplo clique). Origens externas são recusadas. Configure com `BIOSOLAR_CORS_ORIGENS`.
 - **Endpoints de demonstração (`/simulacao/*`):** existem apenas para a apresentação (alteram condições físicas
   no servidor, e o motor de regras reage). Para desativá-los: `BIOSOLAR_CONTROLES_DEMO=false` (passam a responder `403`).
-- **Validação:** entradas validadas (`@Valid`) e respostas padronizadas (`400`, `403`, `404`, `409`, `500`).
+- **Validação:** entradas validadas (`@Valid`) e respostas padronizadas (`400`, `403`, `404`, `409`, `429`, `500`, `502`, `503`).
 - **Retenção:** leituras de telemetria (gráficos) com mais de 24 h são removidas automaticamente; o **histórico de eventos é mantido**.
 
 | Variável (`.env`) | Padrão |
@@ -325,18 +389,78 @@ balanço hídrico, índice, CORS, retenção e testes ponta a ponta da API (Mock
 | `BIOSOLAR_CORS_ORIGENS` | `http://localhost:[*],http://127.0.0.1:[*],null` |
 | `BIOSOLAR_CONTROLES_DEMO` | `true` |
 | `PORT` | `8080` |
+| `BIOSOLAR_SMTP_*` | vazio (e-mail desativado); ver "Envio por e-mail" |
 
-| Teste | Cenário | Resultado esperado |
+## Exportação e compartilhamento
+
+Aba **Relatórios > 📤 Exportar e compartilhar**. Tudo é gerado **pelo servidor** a partir do PostgreSQL e do estado
+atual da automação no momento do clique.
+
+| Opção | O que gera | Como testar |
 |---|---|---|
-| 1 | Reservatório > 15% | Comando manual funciona |
-| 2 | Reservatório < 15% | Todas as bombas desligam |
-| 3 | Umidade < 25% e reservatório > 15% | Aspersor liga automaticamente |
-| 4 | Umidade < 25% e reservatório < 15% | Aspersor **não** liga (nem manualmente) |
-| 5 | Após a emergência | Bombas permanecem desligadas até o rearme |
+| **📄 PDF** | A4 com logo, período, status, 8 indicadores, decisão do sistema, reservatório (tabela + gráfico com faixas de risco), talhões (tabela + gráfico de umidade), irrigação e energia, alertas ativos, 15 eventos importantes e "Página X de Y" | **Abrir** (nova aba) ou **Baixar**; ou `http://localhost:8080/exportacao/pdf` |
+| **📊 Excel** | `.xlsx` com 6 abas: **Resumo** (logo, indicadores, alertas, decisão, links), **Talhões**, **Reservatório** (série + quadro da situação atual), **Irrigação** (eventos + totais por talhão), **Eventos** e **Histórico** (umidade e aspersor de cada talhão). Cada aba tem uma Tabela do Excel com filtros, cabeçalho congelado, larguras ajustadas e valores reais (datas, %, números) | **Baixar**; abra no Excel e use os filtros dos cabeçalhos |
+| **💬 WhatsApp** | Mensagem curta (data, reservatório, talhões, irrigação, alertas, sistema) com prévia no formato do WhatsApp | **Compartilhar** > **Abrir no WhatsApp** (opcional: número com DDD). No celular: **Outros apps…** ou **Enviar com o PDF** |
+| **✉️ E-mail** | O servidor envia o PDF, o Excel ou os dois, com o resumo no corpo e a logo | Configure o SMTP (abaixo) > **Enviar** > destinatário, assunto, mensagem e anexo |
+
+Nas planilhas, o histórico é amostrado uniformemente quando passa de 3.000 leituras (a nota de cada aba informa a
+amostragem); nos gráficos do PDF, cada linha tem até 300 pontos. O CSV continua disponível em "CSV (dados brutos)".
+
+### Envio por e-mail (SMTP no `.env`)
+
+O e-mail sai **do servidor**: usuário e senha ficam só no `.env` (que não vai para o git) e nunca chegam ao navegador.
+Acrescente ao `.env` e reinicie a API:
+
+```properties
+BIOSOLAR_SMTP_HOST=smtp.gmail.com
+BIOSOLAR_SMTP_PORTA=587
+BIOSOLAR_SMTP_USUARIO=seu.email@gmail.com
+BIOSOLAR_SMTP_SENHA=senha-de-app-de-16-letras
+# Opcionais: BIOSOLAR_SMTP_REMETENTE (padrão = usuário), BIOSOLAR_SMTP_NOME, BIOSOLAR_SMTP_STARTTLS=true,
+# BIOSOLAR_SMTP_SSL=false (true para a porta 465), BIOSOLAR_SMTP_LIMITE_HORA=20
+```
+
+- **Gmail**: ative a verificação em duas etapas e crie uma **senha de app** (Conta Google > Segurança > Senhas de app).
+- **Outlook/Microsoft 365**: `smtp.office365.com`, porta 587, STARTTLS (a conta precisa permitir SMTP autenticado).
+- Sem `BIOSOLAR_SMTP_HOST`, a janela de e-mail avisa que o envio não está configurado (a API responde `503`).
+- Proteções: até 5 destinatários por envio, 20 envios por hora (configurável), e-mails validados no servidor.
+  Cada envio vira um evento *Relatório* no histórico, com o endereço mascarado (`g***@fazenda.com`).
+
+## Citrus: assistente por voz
+
+Clique em **🎙️** no topo e fale, por exemplo, **"Citrus, quero o status"**. O navegador transcreve a fala (Chrome ou
+Edge; o reconhecimento de voz desses navegadores usa a internet). O **servidor** interpreta o comando, consulta os
+dados reais e responde. A resposta aparece na conversa e, com **"Responder também em voz"**, é lida em voz alta.
+Sem microfone, ou em um navegador sem reconhecimento de voz, digite a pergunta no mesmo painel. O painel mostra
+**🎙️ Ouvindo…**, **🔎 Consultando os dados…** e **🔊 Respondendo…**.
+
+| Pergunta | O que o Citrus faz |
+|---|---|
+| "Citrus, quero o status" | Reservatório, talhões, aspersores, alertas e situação do sistema |
+| "Como está o reservatório?" | Nível, volume, consumo, autonomia e proteção |
+| "Quais talhões estão críticos?" | Talhões críticos (ou em atenção) com a umidade; abre a aba Talhões |
+| "Tem algum alerta?" | Alertas ativos; abre Monitoramento |
+| "Como está a irrigação?" | Aspersores ligados (automático/manual) e totais do período |
+| "Mostre o talhão C" | Resumo do talhão e **abre os detalhes** dele (entende "talhão cê", "talhão do B" e nomes cadastrados) |
+| "Gere um relatório" / "Relatório de hoje" | Resumo do período e **abre a área de exportação** |
+| "O que está acontecendo?" | Decisão atual do motor de regras e últimos eventos |
+| "Ligar/desligar o aspersor do talhão B" | Executa **com as mesmas regras de segurança** do painel (recusa durante o bloqueio de emergência) |
+
+Também responde sobre energia solar e sobre o índice. Quando não reconhece o comando, responde: "Não consegui entender
+esse comando. Tente perguntar sobre o reservatório, talhões, irrigação, alertas ou relatório."
+Pela API: `POST /assistente/comando` com `{"texto": "como está o reservatório?"}`.
 
 ## Demonstração (roteiro para a banca)
 
-Use o **🎬 Painel de Simulação** do dashboard. Antes de apresentar, clique em **↺ Restaurar cenário**.
+Use o botão **🎬 Demonstração** (topo da tela), que abre o painel ao lado do dashboard. Antes de apresentar, clique em
+**↺ Restaurar cenário**: a fazenda volta aos **níveis iniciais cadastrados** (umidade inicial de cada talhão e nível
+inicial do reservatório), os aspersores desligam e o histórico é reiniciado. O cadastro é mantido.
+
+A interface é organizada em seções: **Visão geral** (status, indicadores, decisão, reservatório e resumo dos talhões),
+**Talhões** (mapa e gráfico de umidade), **Irrigação** (aspersores, bombas e regras de automação), **Monitoramento**
+(alertas, histórico, nível do reservatório e saúde do sistema), **Relatórios** (índice, indicadores do período e
+exportações) e **Gestão** (cadastro de talhões, reservatório e usina). Os botões **?** explicam cada indicador em
+linguagem simples.
 
 1. **Situação normal**: reservatório em 67%, 🟢 operação normal, Motor de Decisão em "Operação equilibrada".
 2. **Simulação**: selecione *Talhão C* e clique em **↓ Reduzir 5%** duas vezes (ou acelere para 15×).
@@ -347,7 +471,8 @@ Use o **🎬 Painel de Simulação** do dashboard. Antes de apresentar, clique e
 7. **Bloqueio**: o backend desliga **todas** as bombas e o status passa para 🚨 EMERGÊNCIA.
 8. **Tentativa manual**: em *Controle dos Aspersores*, clique em **Ligar**.
 9. **O sistema recusa**: aparece **🚨 AÇÃO BLOQUEADA** com a mensagem do servidor (HTTP 409).
-10. **Diferenciais**: histórico, índice ("Como é calculado?"), relatório (PDF/CSV/WhatsApp), 🔊 voz e ♿ acessibilidade.
+10. **Diferenciais**: pergunte ao **🎙️ Citrus** "o que está acontecendo?" e "gere um relatório"; exporte o PDF e o
+    Excel, compartilhe pelo WhatsApp ou por e-mail; histórico, índice ("Como é calculado?") e ♿ acessibilidade.
 
 Pela API, sem o navegador:
 
@@ -360,18 +485,19 @@ Invoke-RestMethod -Method Post http://localhost:8080/bombas/acionar -ContentType
 
 ## Acessibilidade
 
-- **Central de Acessibilidade (♿)**: aumentar, diminuir e restaurar a fonte; tema claro, escuro ou do sistema; **alto contraste**; **escala de cinza**; **reduzir animações** (e respeito a `prefers-reduced-motion`).
+- **Central de Acessibilidade (♿)**: aumentar, diminuir e restaurar a fonte; tema claro, escuro ou do sistema; **alto contraste**; **escala de cinza**; **reduzir animações** (desliga ondas, jatos, pulsos e a animação dos gráficos; vale na hora e fica salvo no navegador).
 - **Navegação**: link "Pular para o conteúdo", foco visível, ordem lógica, HTML semântico (`header`, `main`, `section`, `dl`, `dialog`), rótulos e ARIA (`aria-live` para status e emergências, `role="meter"` no reservatório e no índice).
 - **Gráficos**: navegáveis por teclado (← →), com tooltip, legenda, rótulos diretos e **tabela de dados**. A paleta categórica foi validada para daltonismo.
 - **Status nunca só por cor**: sempre ícone + texto (🟢 Normal, 🟡 Atenção, 🔴 Crítico, 🚨 Emergência).
-- **🔊 Leitura em voz** (Web Speech API): "Ouvir status da fazenda", com anúncio opcional de emergências.
+- **🔊 Leitura em voz** (Web Speech API): "Ouvir status da fazenda" (Central de Acessibilidade), com anúncio opcional de emergências.
+- **🎙️ Citrus**: perguntas por voz ou texto, respostas em texto e em voz, anunciadas também para leitores de tela.
 - **🤟 Libras**: integração opcional com o **VLibras** (gov.br), carregado sob demanda.
 
 ## Conformidade com o regulamento
 
 - **Nenhum dado operacional no navegador**: umidade, reservatório, bombas, aspersores, telemetria e estados vivem no servidor e no PostgreSQL. O `localStorage` guarda **apenas** preferências visuais (`biosolar.preferencias`: tema, fonte, contraste, cinza, movimento, voz, Libras).
 - **Automação no backend**: `MotorRegras` + `SimuladorFazenda` (`@Scheduled`). O frontend não contém nenhuma regra de acionamento.
-- **Segurança da API**: validação (`@Valid`), respostas HTTP adequadas (200/400/403/404/409/500), CORS configurável e nenhuma credencial no frontend.
+- **Segurança da API**: validação (`@Valid`), respostas HTTP adequadas (200/400/403/404/409/500), CORS configurável e nenhuma credencial no frontend (a senha do SMTP fica só no `.env` do servidor).
 
 ## Estrutura
 
@@ -380,25 +506,33 @@ backend/
 ├── pom.xml · mvnw · mvnw.cmd
 └── src/main/java/br/com/biosolar/citrus/
     ├── config/       CORS, agendamento, propriedades
-    ├── controller/   Telemetria, Bomba, Historico, Indicadores, Relatorio, Simulacao
+    ├── controller/   Telemetria, Bomba, Historico, Indicadores, Relatorio, Simulacao, Talhao, Configuracao,
+    │                 Exportacao, Assistente
     ├── dto/          records de resposta/requisição
     ├── exception/    ApiExceptionHandler + erros de domínio
-    ├── model/        Fazenda (agregado), Talhao, Reservatorio, Evento, leituras
+    ├── model/        Fazenda (agregado), Talhao, Reservatorio, Evento, leituras, CadastroTalhao/Reservatorio
     ├── repository/   Spring Data JPA
-    ├── service/      MotorRegras, MotorDecisao, Indice, Telemetria, Acionamento, Relatorio…
+    ├── service/      MotorRegras, MotorDecisao, Indice, Telemetria, Acionamento, Relatorio, Cadastro…
+    │   ├── exportacao/  Coleta, RelatorioPdf (+ GraficoPdf), RelatorioExcel, Compartilhamento, Email
+    │   └── assistente/  AssistenteService (Citrus)
     ├── simulation/   SimuladorFazenda, ModeloFisico, ModeloSolar, CenarioInicial
     └── util/
-    src/main/resources/db/migration/V1__criar_tabelas.sql
+    src/main/resources/db/migration/   V1 tabelas · V2 índices/restrições · V3 cadastro, views e comentários
+    src/main/resources/relatorio/      logos usadas no PDF, na planilha e no e-mail
 frontend/
 ├── index.html
+├── assets/           logos (cabeçalho, carregamento, ícone da aba)
 └── src/
-    ├── components/   statusGeral, motorDecisao, mapaTalhoes, controleAspersores, graficos, historico…
-    ├── services/     api, telemetriaService, bombaService, eventoService, simulacaoService, relatorioService
-    ├── styles/       tokens.css (temas), app.css, print.css
-    ├── utils/        format, dom, charts (SVG), voz
+    ├── components/   abas, carregamento, statusGeral, motorDecisao, mapaTalhoes, resumoTalhoes, controleAspersores,
+    │                 graficos, historico, alertas, periodo, gestao, exportacao, citrus…
+    ├── services/     api, telemetria, bomba, evento, simulacao, relatorio, cadastro, exportacao, assistente
+    ├── styles/       tokens.css (temas), app.css, secoes.css (abas, carregamento, ajuda, gestão, animações),
+    │                 ferramentas.css (exportação e Citrus), print.css
+    ├── utils/        format, dom, charts (SVG), voz, ajuda (botões ?)
     ├── config.js
     └── app.js
-scripts/              setup-ambiente.ps1 · iniciar.ps1
+scripts/              setup-ambiente.ps1 · iniciar.ps1 · pgadmin.ps1 · ambiente.ps1 (funções comuns)
+.vscode/              F5 (launch.json), tarefas (tasks.json), extensão recomendada
 api.http              exemplos de todas as requisições (REST Client / IntelliJ)
 .env.example          modelo das variáveis de ambiente (o .env não é versionado)
 docker-compose.yml    PostgreSQL alternativo via Docker

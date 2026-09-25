@@ -10,14 +10,16 @@ BS.componentes.mapaTalhoes = (function () {
     b.type = 'button';
     b.className = 'talhao';
     b.setAttribute('data-id', x.id);
+    // Somente conteúdo "phrasing" (span/i) dentro do <button>: HTML válido. Os filhos do botão são
+    // itens flex (coluna), portanto se comportam como blocos sem precisar de <div>.
     b.innerHTML =
-      '<div class="talhao-top"><span class="talhao-nome" data-nome></span><span data-pill></span></div>' +
-      '<div class="talhao-cultura" data-cultura></div>' +
-      '<div class="talhao-umid"><span class="v num" data-umid>--</span><span class="t" data-tend></span></div>' +
-      '<div class="umid-bar" aria-hidden="true"><i data-bar></i>' +
+      '<span class="talhao-top"><span class="talhao-nome" data-nome></span><span data-pill></span></span>' +
+      '<span class="talhao-cultura" data-cultura></span>' +
+      '<span class="talhao-umid"><span class="v num" data-umid>--</span><span class="t" data-tend></span></span>' +
+      '<span class="umid-bar" aria-hidden="true"><i data-bar></i>' +
       '<span class="lim" data-lim-critico title="Limite crítico"></span>' +
-      '<span class="lim" data-lim-alvo style="opacity:.25" title="Umidade alvo"></span></div>' +
-      '<div class="talhao-estado" data-estado></div>';
+      '<span class="lim" data-lim-alvo style="opacity:.25" title="Umidade alvo"></span></span>' +
+      '<span class="talhao-estado" data-estado></span>';
     b.addEventListener('click', function () { abrir(x.id); });
     return b;
   }

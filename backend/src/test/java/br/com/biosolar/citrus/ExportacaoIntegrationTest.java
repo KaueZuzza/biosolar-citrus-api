@@ -52,6 +52,11 @@ import jakarta.mail.internet.MimeMessage;
     "biosolar.email.host=localhost",
     "biosolar.email.porta=3025",
     "biosolar.email.starttls=false",
+    "biosolar.email.ssl=false",
+    // Isola o teste do .env da maquina: sem isso, um SMTP real configurado la mandaria usuario/senha ao GreenMail
+    "biosolar.email.usuario=",
+    "biosolar.email.senha=",
+    "biosolar.email.nome-remetente=BioSolar Citrus",
     "biosolar.email.remetente=relatorios@biosolar.test",
     "biosolar.email.limite-por-hora=3"
 })

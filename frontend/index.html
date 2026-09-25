@@ -293,7 +293,7 @@
         <div class="card-head">
           <div>
             <h3 class="card-title" id="g-umid-titulo">📈 Umidade dos talhões ao longo do tempo <button type="button" class="ajuda" data-ajuda="grafico-umidade"></button></h3>
-            <p class="card-sub">Leituras gravadas no banco (%). Linha tracejada: limite crítico de 25%.</p>
+            <p class="card-sub">Leituras gravadas no banco (%), por hora na fazenda. Linha tracejada: limite crítico de 25%.</p>
           </div>
         </div>
         <div class="legend" id="g-umid-legenda"></div>
@@ -370,7 +370,7 @@
           <div class="card-head">
             <div>
               <h3 class="card-title" id="g-res-titulo">💧 Nível do reservatório <button type="button" class="ajuda" data-ajuda="grafico-reservatorio"></button></h3>
-              <p class="card-sub">Histórico (%). Faixas de atenção (30%) e de bloqueio (15%).</p>
+              <p class="card-sub">Histórico (%) por hora na fazenda. Faixas de atenção (30%) e de bloqueio (15%).</p>
             </div>
           </div>
           <div class="chart" id="g-reservatorio" tabindex="0" role="img" aria-label="Gráfico do nível do reservatório ao longo do tempo"></div>
@@ -612,6 +612,7 @@
       <div class="sim-group" role="group" aria-labelledby="sim-res-label">
         <span id="sim-res-label">💧 Reservatório</span>
         <div class="sim-row">
+          <button class="btn btn-sm" type="button" data-reservatorio="-5">↓ Reduzir 5%</button>
           <button class="btn btn-sm" type="button" data-reservatorio="-10">↓ Reduzir 10%</button>
           <button class="btn btn-sm" type="button" data-reservatorio="10">↑ Reabastecer 10%</button>
           <button class="btn btn-sm btn-danger" type="button" id="sim-emergencia">🚨 Simular emergência</button>
