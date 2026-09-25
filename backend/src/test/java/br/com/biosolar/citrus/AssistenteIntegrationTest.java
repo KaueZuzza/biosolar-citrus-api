@@ -2,6 +2,7 @@ package br.com.biosolar.citrus;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -123,6 +124,44 @@ class AssistenteIntegrationTest {
         perguntar("ligar o aspersor")
                 .andExpect(jsonPath("$.executouAcao", is(false)))
                 .andExpect(jsonPath("$.resposta", startsWith("De qual talhão?")));
+    }
+
+    @Test
+    void perguntaDeConselhoVaiParaOAgenteENuncaLigaABomba() throws Exception {
+        perguntar("Citrus, devo irrigar o talhão C?")
+                .andExpect(jsonPath("$.entendido", is(true)))
+                .andExpect(jsonPath("$.intencao", is("AGRONOMIA")))
+                .andExpect(jsonPath("$.executouAcao", is(false)))
+                .andExpect(jsonPath("$.acao.tipo", is("ABRIR_AGENTE")))
+                .andExpect(jsonPath("$.acao.tema", is("IRRIGACAO")))
+                .andExpect(jsonPath("$.acao.talhaoId", is("C")))
+                .andExpect(jsonPath("$.resposta", containsString("Estimativa: ")))
+                .andExpect(jsonPath("$.resposta", containsString("Se decidir irrigar, diga: ligar o aspersor do Talhão C.")))
+                .andExpect(jsonPath("$.fala", not(containsString("%"))));
+        perguntar("vale a pena ligar a bomba do talhão A?")
+                .andExpect(jsonPath("$.intencao", is("AGRONOMIA")))
+                .andExpect(jsonPath("$.executouAcao", is(false)));
+        mvc.perform(get("/telemetria"))
+                .andExpect(jsonPath("$.talhoes[0].aspersorLigado", is(false)))
+                .andExpect(jsonPath("$.talhoes[2].aspersorLigado", is(false)));
+    }
+
+    @Test
+    void perguntasAgronomicasUsamOAgenteAgricola() throws Exception {
+        perguntar("Vai chover nos próximos dias?")
+                .andExpect(jsonPath("$.intencao", is("AGRONOMIA")))
+                .andExpect(jsonPath("$.acao.tema", is("CLIMA")))
+                .andExpect(jsonPath("$.acao.alvo", is("mapa")));
+        perguntar("Qual o solo do talhão A?")
+                .andExpect(jsonPath("$.acao.tema", is("SOLO")))
+                .andExpect(jsonPath("$.acao.talhaoId", is("A")))
+                .andExpect(jsonPath("$.resposta", containsString("Latossolo")));
+        // Sobre o mapa: a posicao (ilustrativa enquanto a area nao e desenhada) vem primeiro
+        perguntar("Onde fica o talhão B no mapa?")
+                .andExpect(jsonPath("$.acao.tema", is("TALHAO")))
+                .andExpect(jsonPath("$.resposta", startsWith("O Talhão B aparece em posição ILUSTRATIVA")));
+        // O que ja era do Citrus continua igual
+        perguntar("Como está o talhão B agora?").andExpect(jsonPath("$.intencao", is("TALHAO")));
     }
 
     @Test

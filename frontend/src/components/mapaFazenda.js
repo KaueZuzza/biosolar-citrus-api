@@ -563,6 +563,15 @@ BS.componentes.mapaFazenda = (function () {
     card.scrollIntoView({ behavior: reduzido() ? 'auto' : 'smooth', block: 'start' });
   }
 
+  /** Chamado pelo Citrus ("Ver análise completa"): a mesma análise, completa, no card do agente. */
+  function consultar(tema, talhaoId) {
+    var sel = document.getElementById('ag-alvo');
+    if (!talhaoId) sel.value = '';
+    else if (sel.querySelector('option[value="' + talhaoId + '"]')) sel.value = talhaoId;
+    perguntar({ tema: tema || null, talhaoId: talhaoId || null });
+    document.getElementById('agente').scrollIntoView({ behavior: reduzido() ? 'auto' : 'smooth', block: 'start' });
+  }
+
   async function perguntar(corpo) {
     var caixa = document.getElementById('ag-resposta');
     caixa.setAttribute('aria-busy', 'true');
@@ -663,5 +672,5 @@ BS.componentes.mapaFazenda = (function () {
     if (BS.componentes.abas.atual() === 'mapa') abrir();
   }
 
-  return { iniciar: iniciar, analisar: analisarTalhao, desenhar: iniciarDesenho };
+  return { iniciar: iniciar, analisar: analisarTalhao, desenhar: iniciarDesenho, consultar: consultar };
 })();

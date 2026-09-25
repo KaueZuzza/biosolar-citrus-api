@@ -14,6 +14,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,8 @@ import org.springframework.stereotype.Service;
 
 import br.com.biosolar.citrus.dto.AcionamentoRequest;
 import br.com.biosolar.citrus.dto.AcionamentoResponse;
+import br.com.biosolar.citrus.dto.AgenteAgricolaDTO;
+import br.com.biosolar.citrus.dto.AgenteAgricolaDTO.Tema;
 import br.com.biosolar.citrus.dto.AlertaDTO;
 import br.com.biosolar.citrus.dto.AssistenteDTO;
 import br.com.biosolar.citrus.dto.AssistenteDTO.Acao;
@@ -45,6 +48,7 @@ import br.com.biosolar.citrus.service.AcionamentoService;
 import br.com.biosolar.citrus.service.EstadoFazendaService;
 import br.com.biosolar.citrus.service.RelatorioService;
 import br.com.biosolar.citrus.service.TelemetriaService;
+import br.com.biosolar.citrus.service.mapa.AgenteAgricolaService;
 import br.com.biosolar.citrus.util.Rotulos;
 
 /**
@@ -52,6 +56,8 @@ import br.com.biosolar.citrus.util.Rotulos;
  * "Citrus"), consulta o estado real da fazenda (automacao + PostgreSQL) e responde em texto e em uma versao
  * adequada para leitura em voz. Acoes (ligar/desligar aspersor) passam pelas MESMAS regras de seguranca do
  * comando manual do painel: o assistente nunca contorna o bloqueio de emergencia.
+ * Perguntas agronomicas (clima, solo, cuidados, citros, regiao, mapa, "devo irrigar?") sao respondidas pelo
+ * agente agricola do Mapa da Fazenda, com a origem de cada informacao dita em voz (dado, publico, estimativa).
  */
 @Service
 public class AssistenteService {
@@ -59,12 +65,39 @@ public class AssistenteService {
     private static final Logger log = LoggerFactory.getLogger(AssistenteService.class);
 
     public static final String NAO_ENTENDI = "Não consegui entender esse comando. Tente perguntar sobre o "
-            + "reservatório, talhões, irrigação, alertas ou relatório.";
+            + "reservatório, talhões, irrigação, alertas, relatório, clima, solo ou cuidados com o pomar.";
 
     private static final Pattern PALAVRA_ATIVACAO = Pattern.compile("\\b(ok |ola |oi |ei |hey )?(citrus|citros|citrous|sitrus|sitros|citru|citrix|citrux)\\b");
     private static final Pattern DESLIGAR = Pattern.compile("\\b(desliga|desligar|desligue|pare|parar|interrompa|interromper|desative|desativar|encerre|encerrar|suspenda|suspender)\\b");
     private static final Pattern LIGAR = Pattern.compile("\\b(liga|ligar|ligue|acione|acionar|aciona|ative|ativar|ativa|irrigue|irrigar|inicie|iniciar|comece|comecar)\\b");
     private static final Pattern OBJETO_IRRIGACAO = Pattern.compile("\\b(aspersor|aspersores|bomba|bombas|irrigacao|irrigar|irrigue|agua|motobomba)\\b");
+    /**
+     * Pedido de conselho ("devo irrigar o talhao C?", "vale a pena ligar a bomba?"): vai para o agente agricola e
+     * NUNCA aciona uma bomba. Comandos diretos ("ligar o aspersor do talhao B") continuam executando a acao.
+     */
+    private static final Pattern CONSELHO_IRRIGACAO = Pattern.compile("\\b(preciso|precisa|precisam|precisamos|devo|deve|"
+            + "devem|devemos|deveria|necessario|vale a pena|convem|compensa|recomenda|recomendavel|hora de|seria bom|e bom|"
+            + "tem que|temos que)\\s+(?:(?:eu|de|que|o|a|ser)\\s+)?(irrigar|regar|molhar|irrigacao|irrigado|irrigada|agua|rega)\\b");
+    private static final Pattern CONSELHO_ACIONAR = Pattern.compile("\\b(devo|deveria|devemos|vale a pena|convem|compensa|"
+            + "recomenda|recomendavel|hora de|seria bom|e bom)\\s+(?:(?:eu|de|que)\\s+)?(ligar|acionar|desligar)\\b");
+    /** Assuntos do agente agricola que o Citrus nao cobre (todas estas palavras tambem sao temas do agente). */
+    private static final Pattern AGRONOMIA = Pattern.compile("\\b(clima|chuva\\w*|chover|chove|choveu|temperatura|calor|"
+            + "previsao|evapotranspiracao|et0|estiagem|periodo seco|meteorolog\\w*|tempo hoje|tempo agora|como esta o tempo|"
+            + "vento\\w*|solo|solos|latossolo|argissolo|neossolo|arenoso|argila\\w*|nutriente\\w*|aduba\\w*|calagem|"
+            + "fertilidade|cuidado\\w*|cuidar|recomend\\w*|o que fazer|o que devo fazer|dica\\w*|manejo|prevenir|doenca\\w*|"
+            + "praga\\w*|gomose|sugest\\w*|laranja\\w*|limao|pomar|colheita|fruto\\w*|fruta\\w*|florada|produtividade|"
+            + "variedade\\w*|cultivo|capitao poco|municipio|regiao|ibge|nordeste paraense|estado do para)\\b");
+    /** Perguntas sobre o mapa: a area desenhada no satelite ou a posicao ilustrativa dos talhoes. */
+    private static final Pattern MAPA = Pattern.compile("\\b(mapa|satelite|hectare|hectares|desenhad\\w*|desenhar|"
+            + "localizacao|onde fica|area do talhao|area dos talhoes|area da fazenda|tamanho do talhao)\\b");
+    private static final Pattern FONTE_NO_TITULO = Pattern.compile("\\(([^)]+)\\)\\s*$");
+    /** Itens do agente ditos pelo Citrus: o restante fica na analise completa do Mapa da Fazenda. */
+    private static final int ITENS_FALADOS = 2;
+    /** Temas em que o resumo do agente acrescenta informacao (nos demais o primeiro item ja o repete). */
+    private static final Set<Tema> TEMAS_COM_RESUMO = EnumSet.of(Tema.SOLO, Tema.CUIDADOS);
+    /** "talhão(ões)", "ativo(s)", "aspersor(es)", "percentual(is)": singular ou plural conforme o numero antes. */
+    private static final Pattern MARCA_PLURAL = Pattern.compile("(\\p{L}+)\\((s|es|is|ões)\\)");
+    private static final Pattern NUMERO = Pattern.compile("\\d+(?:[.,]\\d+)*");
     private static final Set<String> PALAVRAS_TALHAO = Set.of("talhao", "talhoes", "lote", "setor", "quadra");
     /** Palavras que podem vir entre "talhao" e o codigo ("talhao do B", "talhao numero 2"). */
     private static final Set<String> CONECTIVOS = Set.of("do", "da", "o", "numero", "n", "nr");
@@ -92,24 +125,27 @@ public class AssistenteService {
     private final RelatorioService relatorioService;
     private final EventoRepository eventoRepository;
     private final EstadoFazendaService estado;
+    private final AgenteAgricolaService agente;
     private final Clock clock;
 
     public AssistenteService(TelemetriaService telemetriaService, AcionamentoService acionamentoService,
                              RelatorioService relatorioService, EventoRepository eventoRepository,
-                             EstadoFazendaService estado, Clock clock) {
+                             EstadoFazendaService estado, AgenteAgricolaService agente, Clock clock) {
         this.telemetriaService = telemetriaService;
         this.acionamentoService = acionamentoService;
         this.relatorioService = relatorioService;
         this.eventoRepository = eventoRepository;
         this.estado = estado;
+        this.agente = agente;
         this.clock = clock;
     }
 
     public AssistenteDTO.Exemplos exemplos() {
         return new AssistenteDTO.Exemplos(
                 List.of("Citrus, quero o status", "Como está o reservatório?", "Quais talhões estão críticos?",
-                        "Tem algum alerta?", "Como está a irrigação?", "Mostre o talhão C", "O que está acontecendo?",
-                        "Gere um relatório", "Relatório de hoje"),
+                        "Devo irrigar o talhão C?", "Vai chover nos próximos dias?", "Tem algum alerta?",
+                        "Como está a irrigação?", "Qual o solo do talhão A?", "Mostre o talhão C",
+                        "O que está acontecendo?", "Gere um relatório", "Relatório de hoje"),
                 List.of("Ligar o aspersor do talhão B", "Desligar o aspersor do talhão B"));
     }
 
@@ -119,6 +155,10 @@ public class AssistenteService {
         Optional<String> talhao = identificarTalhao(comando, tel.talhoes());
         boolean mencionaTalhao = contem(comando, "talhao", "talhoes");
 
+        // Antes dos comandos: "devo irrigar o talhao C?" e uma pergunta, nao uma ordem para ligar a bomba
+        if (CONSELHO_IRRIGACAO.matcher(comando).find() || CONSELHO_ACIONAR.matcher(comando).find()) {
+            return agronomia(comando, tel, talhao, Tema.IRRIGACAO, false, true);
+        }
         if (DESLIGAR.matcher(comando).find() && (OBJETO_IRRIGACAO.matcher(comando).find() || talhao.isPresent())) {
             return acionar(comando, tel, talhao, false);
         }
@@ -127,6 +167,12 @@ public class AssistenteService {
         }
         if (contem(comando, "relatorio", "exportar", "exporte", "planilha", "excel", "pdf")) {
             return relatorio(comando, tel);
+        }
+        if (MAPA.matcher(comando).find()) {
+            return agronomia(comando, tel, talhao, talhao.isPresent() ? Tema.TALHAO : Tema.GERAL, true, false);
+        }
+        if (AGRONOMIA.matcher(comando).find()) {
+            return agronomia(comando, tel, talhao, null, false, false);
         }
         if (talhao.isPresent()) {
             return talhao(comando, tel, talhao.get());
@@ -163,6 +209,10 @@ public class AssistenteService {
         if (contem(comando, "status", "situacao", "como esta a fazenda", "como estao", "como esta tudo", "resumo",
                 "visao geral", "panorama", "tudo bem", "estado da fazenda") || mencionaTalhao) {
             return status(comando, tel);
+        }
+        // Ultima tentativa: assuntos que so o agente agricola reconhece ("o solo esta seco?", "e a umidade?")
+        if (AgenteAgricolaService.classificar(comando) != null) {
+            return agronomia(comando, tel, talhao, null, false, false);
         }
         return new AssistenteDTO.Resposta(false, Intencao.DESCONHECIDO, comando, NAO_ENTENDI, paraFala(NAO_ENTENDI),
                 null, false, clock.instant());
@@ -411,9 +461,85 @@ public class AssistenteService {
     private AssistenteDTO.Resposta ajuda(String comando) {
         String texto = "Eu consulto a fazenda em tempo real. Pergunte, por exemplo: quero o status; como está o "
                 + "reservatório?; quais talhões estão críticos?; tem algum alerta?; como está a irrigação?; mostre o "
-                + "talhão C; o que está acontecendo?; gere um relatório. Também posso ligar ou desligar o aspersor de um "
-                + "talhão, sempre respeitando as regras de segurança.";
+                + "talhão C; o que está acontecendo?; gere um relatório. Também respondo sobre clima, solo, cuidados, "
+                + "citros e o mapa da fazenda, como: devo irrigar o talhão C?; vai chover? Posso ainda ligar ou desligar "
+                + "o aspersor de um talhão, sempre respeitando as regras de segurança.";
         return resposta(Intencao.AJUDA, comando, texto, null, false);
+    }
+
+    /**
+     * Pergunta agronomica respondida pelo agente agricola. O Citrus fala os itens mais relevantes, sempre dizendo
+     * a origem (estimativa, dado publico, orientacao geral); a analise completa fica a um toque, no Mapa da Fazenda.
+     *
+     * @param tema      tema imposto (null = o agente classifica a pergunta)
+     * @param focoMapa  pergunta sobre o mapa: os itens de area/posicao no mapa vem primeiro
+     * @param conselho  "devo irrigar?": lembra como dar o comando, que nunca e executado sozinho
+     */
+    private AssistenteDTO.Resposta agronomia(String comando, TelemetriaDTO tel, Optional<String> talhao, Tema tema,
+                                             boolean focoMapa, boolean conselho) {
+        AgenteAgricolaDTO.Resposta r;
+        try {
+            r = agente.responder(new AgenteAgricolaDTO.Pergunta(comando, talhao.orElse(null),
+                    tema == null ? null : tema.name()));
+        } catch (RuntimeException e) {
+            log.warn("Agente agrícola indisponível para o assistente: {}", e.getMessage());
+            return resposta(Intencao.AGRONOMIA, comando, "Não consegui montar a análise agronômica agora. A automação "
+                    + "continua funcionando; tente de novo em instantes.", null, false);
+        }
+        List<AgenteAgricolaDTO.Item> itens = new ArrayList<>(r.itens());
+        if (focoMapa) {
+            // Ordenacao estavel: os itens do mapa sobem e os demais mantem a ordem de relevancia do agente
+            itens.sort((a, b) -> Boolean.compare(!sobreMapa(a), !sobreMapa(b)));
+        }
+        StringBuilder sb = new StringBuilder();
+        if (r.talhaoId() != null && TEMAS_COM_RESUMO.contains(r.tema())) {
+            sb.append(terminarComPonto(r.resumo())).append(' ');
+        }
+        // Visao da fazenda: um item curto por talhao ("Talhao A", "Talhao B"...) e dito junto, como um so
+        Set<String> nomes = tel.talhoes().stream().map(TalhaoDTO::nome).collect(Collectors.toSet());
+        List<AgenteAgricolaDTO.Item> falados = new ArrayList<>();
+        int pos = 0;
+        while (pos < itens.size() && nomes.contains(itens.get(pos).titulo())) {
+            falados.add(itens.get(pos++));
+        }
+        for (int extras = falados.isEmpty() ? ITENS_FALADOS : 1; extras > 0 && pos < itens.size(); extras--) {
+            falados.add(itens.get(pos++));
+        }
+        for (AgenteAgricolaDTO.Item i : falados) {
+            // O nome do talhao so esta no titulo ("38% (normal)..."): e dito antes do texto
+            String sujeito = nomes.contains(i.titulo()) && !i.texto().contains(i.titulo()) ? i.titulo() + ": " : "";
+            sb.append(origem(i)).append(sujeito).append(terminarComPonto(i.texto())).append(' ');
+        }
+        r.avisos().stream().filter(a -> !AgenteAgricolaService.NAO_IDENTIFICADO.equals(a))
+                .forEach(a -> sb.append(terminarComPonto(a)).append(' '));
+        if (conselho && r.talhaoId() != null) {
+            tel.talhoes().stream().filter(x -> x.id().equals(r.talhaoId()) && !x.aspersorLigado() && !x.irrigacaoBloqueada())
+                    .findFirst().ifPresent(x -> sb.append("Se decidir irrigar, diga: ligar o aspersor do ")
+                            .append(x.nome()).append(". "));
+        }
+        int restantes = itens.size() - falados.size();
+        if (restantes > 0) {
+            sb.append("A análise completa tem mais ").append(restantes).append(restantes == 1 ? " item." : " itens.");
+        }
+        Acao acao = new Acao("ABRIR_AGENTE", "mapa", r.talhaoId(), "Ver análise completa", r.tema().name());
+        return resposta(Intencao.AGRONOMIA, comando, sb.toString().trim(), acao, false);
+    }
+
+    private static boolean sobreMapa(AgenteAgricolaDTO.Item item) {
+        return item.titulo().toLowerCase(PT_BR).contains("mapa");
+    }
+
+    /** Deixa claro, tambem em voz, de onde vem cada informacao (o que e medido nao recebe prefixo). */
+    private static String origem(AgenteAgricolaDTO.Item item) {
+        return switch (item.tipo()) {
+            case DADO -> "";
+            case PUBLICO -> {
+                Matcher m = FONTE_NO_TITULO.matcher(item.titulo());
+                yield m.find() ? "Dado público (" + m.group(1) + "): " : "Dado público: ";
+            }
+            case ESTIMATIVA -> "Estimativa: ";
+            case ORIENTACAO -> "Orientação geral: ";
+        };
     }
 
     // ---- Apoio ----------------------------------------------------------------------------------------------
@@ -530,11 +656,50 @@ public class AssistenteService {
 
     /** Versao para leitura em voz: unidades por extenso e sem simbolos. */
     static String paraFala(String texto) {
-        return texto.replace("m³/h", " metros cúbicos por hora").replace("m³", " metros cúbicos")
+        return plurais(texto).replace("m³/dia", " metros cúbicos por dia").replace("mm/dia", " milímetros por dia")
+                .replace("°C", " graus").replace(" (ET0)", "").replace("ET0", "evapotranspiração de referência")
+                .replace(" · ", ", ").replace(" km²", " quilômetros quadrados")
+                .replaceAll("R\\$ ?([\\d.,]+) (milhões|milhão|bilhões|bilhão|mil)(?!\\p{L})", "$1 $2 de reais")
+                .replaceAll("R\\$ ?([\\d.,]+)", "$1 reais")
+                .replaceAll("(\\d) mm\\b", "$1 milímetros").replaceAll("(\\d) t/ha\\b", "$1 toneladas por hectare")
+                .replaceAll("(\\d) ha\\b", "$1 hectares").replaceAll("(\\d) t\\b", "$1 toneladas")
+                .replace("m³/h", " metros cúbicos por hora").replace("m³", " metros cúbicos")
                 .replace("kWh", " quilowatts-hora").replace(" kW", " quilowatts").replace("p.p./h", " pontos por hora")
                 .replace("%", " por cento").replace("~", "cerca de ").replace("×", " vezes")
                 .replaceAll("(\\d) h\\b", "$1 horas").replaceAll("(\\d) min\\b", "$1 minutos")
                 .replaceAll("[\\p{So}\\p{Cn}]", "").replaceAll(" {2,}", " ").trim();
+    }
+
+    /**
+     * "1 talhão(ões) próximo(s)" -> "1 talhão próximo"; "4 aspersor(es) ligado(s)" -> "4 aspersores ligados".
+     * Vale o ultimo numero antes da palavra, na mesma frase (sem numero: plural).
+     */
+    static String plurais(String texto) {
+        Matcher m = MARCA_PLURAL.matcher(texto);
+        StringBuilder sb = new StringBuilder();
+        while (m.find()) {
+            String antes = texto.substring(0, m.start());
+            int inicioFrase = Math.max(antes.lastIndexOf(". "), Math.max(antes.lastIndexOf("; "), antes.lastIndexOf(": ")));
+            Matcher n = NUMERO.matcher(antes.substring(Math.max(0, inicioFrase)));
+            String ultimo = null;
+            while (n.find()) {
+                ultimo = n.group();
+            }
+            String palavra = m.group(1);
+            String forma;
+            if ("1".equals(ultimo)) {
+                forma = palavra;
+            } else {
+                forma = switch (m.group(2)) {
+                    case "ões" -> palavra.endsWith("ão") ? palavra.substring(0, palavra.length() - 2) + "ões" : palavra + "ões";
+                    case "is" -> palavra.endsWith("l") ? palavra.substring(0, palavra.length() - 1) + "is" : palavra + "is";
+                    default -> palavra + m.group(2);
+                };
+            }
+            m.appendReplacement(sb, Matcher.quoteReplacement(forma));
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
     private static boolean contem(String comando, String... termos) {

@@ -10,6 +10,22 @@
       vozes.find(function (v) { return /^pt/i.test(v.lang); }) || null;
   }
 
+  /** Trechos de até ~220 caracteres, cortados no fim das frases: falas longas numa só leitura podem parar no meio
+   *  em alguns navegadores. "212.400" e "65,2" não são cortados (o corte exige espaço depois da pontuação). */
+  function trechos(texto) {
+    var frases = String(texto || '').replace(/([.!?;:])\s+/g, '$1\u0000').split('\u0000');
+    var saida = [];
+    var atual = '';
+    frases.forEach(function (frase) {
+      frase = frase.trim();
+      if (!frase) return;
+      if (atual && (atual + ' ' + frase).length > 220) { saida.push(atual); atual = frase; }
+      else atual = atual ? atual + ' ' + frase : frase;
+    });
+    if (atual) saida.push(atual);
+    return saida;
+  }
+
   BS.voz = {
     suportado: suportado,
     /** @param aoTerminar chamada quando a leitura acaba (ou falha), opcional */
@@ -20,18 +36,21 @@
         return;
       }
       window.speechSynthesis.cancel();
-      var fala = new SpeechSynthesisUtterance(texto);
-      fala.lang = 'pt-BR';
-      fala.rate = 1.02;
+      var partes = trechos(texto);
+      var chamado = false;
+      var fim = function () { if (!chamado) { chamado = true; if (aoTerminar) aoTerminar(); } };
+      if (!partes.length) { fim(); return; }
       var voz = vozPtBr();
-      if (voz) fala.voice = voz;
-      if (aoTerminar) {
-        var chamado = false;
-        var fim = function () { if (!chamado) { chamado = true; aoTerminar(); } };
-        fala.onend = fim;
+      partes.forEach(function (parte, i) {
+        var fala = new SpeechSynthesisUtterance(parte);
+        fala.lang = 'pt-BR';
+        fala.rate = 1.02;
+        if (voz) fala.voice = voz;
+        // Erro em qualquer trecho (inclusive cancel) encerra; o fim normal é o do último trecho
         fala.onerror = fim;
-      }
-      window.speechSynthesis.speak(fala);
+        if (i === partes.length - 1) fala.onend = fim;
+        window.speechSynthesis.speak(fala);
+      });
     },
     parar: function () { if (suportado()) window.speechSynthesis.cancel(); }
   };

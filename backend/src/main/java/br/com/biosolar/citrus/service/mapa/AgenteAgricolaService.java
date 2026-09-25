@@ -852,7 +852,8 @@ public class AgenteAgricolaService {
                 + "solo da área é a melhor referência para calagem, adubação e irrigação."};
     }
 
-    static Tema classificar(String n) {
+    /** Tema de uma pergunta ja normalizada (minusculas, sem acentos) ou null. Usado tambem pelo assistente Citrus. */
+    public static Tema classificar(String n) {
         if (n.isEmpty()) {
             return null;
         }

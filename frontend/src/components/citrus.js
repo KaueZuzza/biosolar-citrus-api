@@ -120,7 +120,12 @@ BS.componentes.citrus = (function () {
   /** Executa no painel a ação que o servidor indicou (navegar, abrir um talhão, exportar, atualizar). */
   function executar(acao, manual) {
     var abas = BS.componentes.abas;
-    if (acao.tipo === 'ABRIR_TALHAO' && acao.talhaoId) {
+    if (acao.tipo === 'ABRIR_AGENTE') {
+      // Resposta agronômica: o Citrus já respondeu aqui mesmo; o mapa só abre se o usuário pedir
+      if (!manual) return;
+      abas.ir(acao.alvo || 'mapa');
+      setTimeout(function () { BS.componentes.mapaFazenda.consultar(acao.tema, acao.talhaoId); }, 150);
+    } else if (acao.tipo === 'ABRIR_TALHAO' && acao.talhaoId) {
       abas.ir('talhoes');
       setTimeout(function () { BS.componentes.mapaTalhoes.abrir(acao.talhaoId); }, 150);
     } else if (acao.tipo === 'ABRIR_EXPORTACAO') {

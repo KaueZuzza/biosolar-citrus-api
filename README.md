@@ -337,12 +337,13 @@ cd backend
 .\mvnw.cmd test
 ```
 
-59 testes: os 5 exigidos pelo regulamento, mais rearme, prioridade P2 > P4, fim da irrigação no alvo,
+61 testes: os 5 exigidos pelo regulamento, mais rearme, prioridade P2 > P4, fim da irrigação no alvo,
 balanço hídrico, índice, CORS, retenção, testes ponta a ponta da API (MockMvc), cadastro (criar, validar, editar,
 arquivar, reativar, excluir, sincronizar com o banco, restaurar), robustez da gravação no banco, **exportações** (PDF
 com paginação, Excel com abas/filtros/formatos, mensagem do WhatsApp, envio de e-mail com anexos para um SMTP em
 memória, validação e limite de envios), **Citrus** (cada pergunta, talhão falado por letra, ligar/desligar
-respeitando o bloqueio de emergência, comando desconhecido) e **Mapa da Fazenda** (GeoJSON dos talhões, área
+respeitando o bloqueio de emergência, comando desconhecido, perguntas agronômicas pelo agente sem acionar bombas,
+versão falada das unidades) e **Mapa da Fazenda** (GeoJSON dos talhões, área
 geodésica, polígono inválido, desenhar/redesenhar/remover área, leitura das respostas do IBGE e do Open-Meteo,
 temas e talhão das perguntas, agente sem internet). Os testes nunca acessam a internet.
 
@@ -476,9 +477,16 @@ Sem microfone, ou em um navegador sem reconhecimento de voz, digite a pergunta n
 | "Gere um relatório" / "Relatório de hoje" | Resumo do período e **abre a área de exportação** |
 | "O que está acontecendo?" | Decisão atual do motor de regras e últimos eventos |
 | "Ligar/desligar o aspersor do talhão B" | Executa **com as mesmas regras de segurança** do painel (recusa durante o bloqueio de emergência) |
+| "Devo irrigar o talhão C?" / "Vai chover?" / "Qual o solo do talhão A?" / "Onde fica o talhão B no mapa?" | Responde com o **agente agrícola** (ver Mapa da Fazenda), em voz e sem sair da tela |
+
+**Perguntas agronômicas** (clima, solo, cuidados, citros, região, mapa, umidade da fazenda) são respondidas pelo agente
+agrícola do Mapa da Fazenda. O Citrus fala os itens mais relevantes dizendo a origem de cada um (**"Estimativa:"**,
+**"Dado público (IBGE):"**, **"Orientação geral:"**). O botão **Ver análise completa** abre a análise inteira no mapa,
+e só quando você toca nele. Perguntas de conselho ("devo irrigar?", "vale a pena ligar a bomba?") **nunca acionam
+uma bomba**. Para ligar, o comando continua sendo direto: "ligar o aspersor do talhão C".
 
 Também responde sobre energia solar e sobre o índice. Quando não reconhece o comando, responde: "Não consegui entender
-esse comando. Tente perguntar sobre o reservatório, talhões, irrigação, alertas ou relatório."
+esse comando. Tente perguntar sobre o reservatório, talhões, irrigação, alertas, relatório, clima, solo ou cuidados com o pomar."
 Pela API: `POST /assistente/comando` com `{"texto": "como está o reservatório?"}`.
 
 ## Mapa da Fazenda

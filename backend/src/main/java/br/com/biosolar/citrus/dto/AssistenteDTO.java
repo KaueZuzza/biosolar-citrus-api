@@ -32,6 +32,8 @@ public final class AssistenteDTO {
         O_QUE_ACONTECE,
         ENERGIA,
         INDICE,
+        /** Pergunta agronomica (clima, solo, cuidados, citros, regiao, mapa): respondida pelo agente agricola. */
+        AGRONOMIA,
         AJUDA,
         DESCONHECIDO
     }
@@ -39,12 +41,18 @@ public final class AssistenteDTO {
     /**
      * Acao que o painel executa junto com a resposta.
      *
-     * @param tipo    NAVEGAR (abre uma secao), ABRIR_TALHAO (detalhes), ABRIR_EXPORTACAO, ATUALIZAR
-     * @param alvo    secao do painel (visao-geral, talhoes, irrigacao, monitoramento, relatorios, gestao)
+     * @param tipo    NAVEGAR (abre uma secao), ABRIR_TALHAO (detalhes), ABRIR_EXPORTACAO, ATUALIZAR,
+     *                ABRIR_AGENTE (analise completa no Mapa da Fazenda; so quando o usuario toca no botao)
+     * @param alvo    secao do painel (visao-geral, talhoes, irrigacao, monitoramento, relatorios, gestao, mapa)
      * @param talhaoId talhao envolvido, quando houver
      * @param rotulo  texto do botao exibido na conversa
+     * @param tema    tema do agente agricola (apenas em ABRIR_AGENTE)
      */
-    public record Acao(String tipo, String alvo, String talhaoId, String rotulo) {
+    public record Acao(String tipo, String alvo, String talhaoId, String rotulo, String tema) {
+
+        public Acao(String tipo, String alvo, String talhaoId, String rotulo) {
+            this(tipo, alvo, talhaoId, rotulo, null);
+        }
     }
 
     /**

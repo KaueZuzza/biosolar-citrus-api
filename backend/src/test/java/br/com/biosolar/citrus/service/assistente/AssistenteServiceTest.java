@@ -47,6 +47,17 @@ class AssistenteServiceTest {
                 .isEqualTo("Reservatório em 67 por cento, com 536 de 800 metros cúbicos; autonomia de 5,2 horas.");
         assertThat(AssistenteService.paraFala("Consumo de 36 m³/h e 11 kW.")).isEqualTo(
                 "Consumo de 36 metros cúbicos por hora e 11 quilowatts.");
+        // Unidades das respostas do agente agricola
+        assertThat(AssistenteService.paraFala("34,6 °C · 6,8 mm em 7 dias; ~3,0 mm/dia (0,65 × ET0) para 8,2 ha."))
+                .isEqualTo("34,6 graus, 6,8 milímetros em 7 dias; cerca de 3,0 milímetros por dia (0,65 vezes "
+                        + "evapotranspiração de referência) para 8,2 hectares.");
+        assertThat(AssistenteService.paraFala("4 talhão(ões) ativo(s), perdendo 1,2 ponto(s) percentual(is) por hora; 212.400 t."))
+                .isEqualTo("4 talhões ativos, perdendo 1,2 pontos percentuais por hora; 212.400 toneladas.");
+        assertThat(AssistenteService.paraFala("Atenção: 1 talhão(ões) próximo(s) do limite. 1 de 4 aspersor(es) ligado(s)."))
+                .isEqualTo("Atenção: 1 talhão próximo do limite. 1 de 4 aspersores ligados.");
+        assertThat(AssistenteService.paraFala("Área de 2.901 km², 17,7 t/ha e R$ 424,8 milhões. Evapotranspiração de referência (ET0) hoje."))
+                .isEqualTo("Área de 2.901 quilômetros quadrados, 17,7 toneladas por hectare e 424,8 milhões de reais. "
+                        + "Evapotranspiração de referência hoje.");
     }
 
     private static Optional<String> id(String comando) {
