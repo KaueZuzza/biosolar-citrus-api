@@ -59,6 +59,12 @@
     kwp: ['Potência da usina (kWp)', 'Potência máxima que os painéis solares geram ao meio-dia com sol pleno. "kWp" é quilowatt-pico.'],
     banco: ['Banco de dados', 'Onde tudo fica guardado (PostgreSQL): o cadastro, o estado da fazenda e o histórico. Se ele cair, a automação continua funcionando e grava tudo quando ele voltar.'],
 
+    // Mapa da Fazenda
+    'mapa-fazenda': ['Mapa da Fazenda', 'Foto de satélite real da região de Capitão Poço (PA). Arraste para mover e use a roda do mouse ou os botões + e − para aproximar. Cada talhão aparece colorido pela umidade atual (verde, amarelo ou vermelho), com os dados vindos do servidor. No ícone de camadas (canto superior direito) dá para trocar para o mapa de ruas e ligar ou desligar os nomes e o limite do município.'],
+    'posicao-ilustrativa': ['Posição ilustrativa ou área desenhada', 'Enquanto você não marcar onde o talhão fica de verdade, ele aparece como um quadrado tracejado com a área cadastrada, perto de Capitão Poço: é só uma ilustração. Selecione o talhão, clique em "Desenhar área" e clique no mapa nos cantos do talhão, em sequência. A área real fica salva no banco de dados.'],
+    'fontes-publicas': ['Dados públicos', 'Informações oficiais consultadas pelo servidor: IBGE (município, limites e produção agrícola da PAM) e Open-Meteo (tempo, chuva e evapotranspiração). Se a internet cair, o painel avisa que estão indisponíveis; nada é inventado no lugar.'],
+    'agente-agricola': ['Agente agrícola', 'Um assistente que junta os dados da fazenda (umidade, irrigação, solo, reservatório) com dados públicos (clima e produção da região) e explica o que está acontecendo e quais cuidados tomar. Cada informação mostra de onde veio: dado do sistema, fonte pública, estimativa (sempre com a base do cálculo) ou orientação geral. Ele funciona por regras e dados reais: não inventa números.'],
+
     // Demonstração
     velocidade: ['Velocidade do tempo', 'Acelera o relógio da fazenda para mostrar horas de funcionamento em poucos minutos. Em 1×, 1 segundo real equivale a 1 minuto na fazenda.'],
     restaurar: ['Restaurar cenário', 'Volta a fazenda aos níveis iniciais cadastrados (umidade de cada talhão e nível do reservatório), desliga os aspersores e limpa o histórico. O cadastro é mantido.']

@@ -1,0 +1,198 @@
+/* Mapa da Fazenda (satélite + talhões) e agente agrícola. Só afeta a seção #aba-mapa. */
+
+/* ---- Mapa ------------------------------------------------------------------------------ */
+.mf-card { align-self: start; }
+.mf-card .card-head { align-items: flex-start; }
+.mf-atalhos { display: flex; gap: 6px; flex-wrap: wrap; }
+.mf-mapa-wrap { position: relative; }
+.mf-mapa {
+  height: 560px; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border-strong); background: var(--surface-3);
+}
+.mf-mapa.leaflet-container { font: inherit; font-size: 0.8rem; }
+.mf-mapa.desenhando, .mf-mapa.desenhando .leaflet-interactive { cursor: crosshair; }
+
+.mf-estado {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 900;
+  max-width: calc(100% - 140px); padding: 6px 12px; border-radius: 999px; text-align: center;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--ink);
+  border: 1px solid var(--border-strong); box-shadow: var(--shadow); font-size: 0.82rem; font-weight: 600;
+}
+.mf-estado[hidden] { display: none; }
+
+/* Barra do modo de desenho (por cima do mapa, entre o zoom e o seletor de camadas) */
+.mf-desenho {
+  position: absolute; top: 10px; left: 56px; right: 56px; z-index: 1000;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 12px; border-radius: 12px; background: var(--surface); color: var(--ink);
+  border: 2px solid var(--accent); box-shadow: 0 10px 30px rgba(0, 0, 0, .3); font-size: 0.85rem;
+}
+.mf-desenho[hidden] { display: none; }
+.mf-desenho p { margin: 0; flex: 1 1 240px; }
+.mf-desenho-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Talhões: cor pelo status (ícone e rótulo sempre junto, na lista e no popup) */
+.mf-poligono { stroke: #fff; stroke-width: 2; stroke-opacity: 0.95; fill-opacity: 0.32; transition: fill-opacity .2s; }
+.mf-poligono:hover { fill-opacity: 0.46; }
+.mf-poligono.st-NORMAL { fill: var(--ok); }
+.mf-poligono.st-ATENCAO { fill: var(--warn); }
+.mf-poligono.st-CRITICO { fill: var(--crit); }
+.mf-poligono.ilustrativa { stroke-dasharray: 7 5; }
+.mf-poligono.irrigando { stroke: #74c0fc; stroke-width: 3; stroke-dasharray: 10 6; animation: mf-agua 1s linear infinite; }
+.mf-poligono.bloqueado { stroke: var(--emerg); stroke-width: 3; }
+.mf-poligono.selecionado { stroke: var(--accent); stroke-width: 4; fill-opacity: 0.46; }
+.mf-poligono.editando { fill-opacity: 0.08; stroke-opacity: 0.55; }
+@keyframes mf-agua { to { stroke-dashoffset: -16; } }
+
+.leaflet-tooltip.mf-rotulo {
+  background: rgba(10, 16, 13, 0.78); color: #fff; border: 0; box-shadow: none; border-radius: 6px;
+  padding: 2px 7px; font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+}
+.leaflet-tooltip.mf-rotulo::before { display: none; }
+
+.mf-municipio { stroke: #ffd43b; stroke-width: 2.5; stroke-dasharray: 8 6; fill: #ffd43b; fill-opacity: 0.04; }
+.mf-sede { stroke: #fff; stroke-width: 2; fill: #e8590c; fill-opacity: 1; }
+
+.mf-desenho-linha { stroke: #fff; stroke-width: 2.5; stroke-dasharray: 6 4; fill: none; }
+.mf-desenho-area { stroke: none; fill: #74c0fc; fill-opacity: 0.3; }
+.mf-vertice { stroke: #1864ab; stroke-width: 2; fill: #fff; fill-opacity: 1; }
+.mf-vertice.primeiro { fill: #ffd43b; }
+
+/* Legenda */
+.mf-legenda { margin-top: 10px; }
+.mf-amostra {
+  display: inline-block; width: 16px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px;
+  border: 2px solid #fff; box-shadow: 0 0 0 1px var(--border-strong);
+}
+.mf-amostra.st-NORMAL { background: var(--ok); }
+.mf-amostra.st-ATENCAO { background: var(--warn); }
+.mf-amostra.st-CRITICO { background: var(--crit); }
+.mf-amostra.ilustrativa { background: transparent; border: 2px dashed var(--ink-2); box-shadow: none; }
+.mf-amostra.municipio { background: transparent; border: 2px dashed #d9a400; box-shadow: none; }
+.mf-aviso {
+  margin-top: 10px; padding: 8px 12px; border-radius: 10px; font-size: 0.82rem;
+  background: var(--info-bg); border: 1px solid color-mix(in srgb, var(--info) 45%, transparent); color: var(--ink);
+}
+.mf-aviso[hidden] { display: none; }
+
+/* Leaflet no tema do BioSolar (claro/escuro) */
+#mf-mapa .leaflet-bar a { background: var(--surface); color: var(--ink); border-bottom-color: var(--border); }
+#mf-mapa .leaflet-bar a:hover { background: var(--surface-3); }
+#mf-mapa .leaflet-bar { border: 1px solid var(--border-strong); box-shadow: var(--shadow); }
+#mf-mapa .leaflet-control-layers { background: var(--surface); color: var(--ink); border: 1px solid var(--border-strong); border-radius: 10px; }
+#mf-mapa .leaflet-control-layers-expanded { padding: 8px 12px; }
+#mf-mapa .leaflet-control-attribution { background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--muted); }
+#mf-mapa .leaflet-control-attribution a { color: var(--water); }
+#mf-mapa .leaflet-control-scale-line { background: rgba(255, 255, 255, 0.85); color: #111; border-color: #333; }
+.mf-popup-caixa .leaflet-popup-content-wrapper,
+.mf-popup-caixa .leaflet-popup-tip { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.mf-popup-caixa .leaflet-popup-content { margin: 12px 14px; font: inherit; font-size: 0.85rem; }
+.mf-popup-caixa a.leaflet-popup-close-button { color: var(--muted); }
+.mf-popup-titulo { margin: 0 0 2px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.95rem; }
+.mf-popup-sub { margin: 0 0 8px; color: var(--muted); font-size: 0.8rem; }
+.mf-popup dl { margin: 0 0 10px; display: grid; gap: 4px; }
+.mf-popup dl div { display: grid; grid-template-columns: 74px 1fr; gap: 8px; }
+.mf-popup dt { color: var(--muted); }
+.mf-popup dd { margin: 0; }
+.mf-popup-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ---- Coluna lateral --------------------------------------------------------------------- */
+.mf-lateral { display: grid; gap: 16px; align-content: start; }
+.mf-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mf-item {
+  border: 1px solid var(--border); border-left: 4px solid var(--ok); border-radius: 12px;
+  background: var(--surface-2); padding: 8px 10px; transition: border-color .2s, box-shadow .2s;
+}
+.mf-item.st-ATENCAO { border-left-color: var(--warn); }
+.mf-item.st-CRITICO { border-left-color: var(--crit); }
+.mf-item.selecionado { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); }
+.mf-item-principal {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; padding: 0;
+  background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.mf-item-nome { flex: 1; font-weight: 700; }
+.mf-cor { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.mf-item-sub { margin: 2px 0 0 18px; font-size: 0.78rem; color: var(--muted); }
+.mf-item-acoes { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px 18px; }
+.mf-item-acoes[hidden] { display: none; }
+
+.mf-dados { margin: 0; display: grid; }
+.mf-dados div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--border); }
+.mf-dados div:last-child { border-bottom: 0; }
+.mf-dados dt { color: var(--muted); font-size: 0.82rem; }
+.mf-dados dd { margin: 0; font-weight: 650; text-align: right; font-size: 0.85rem; }
+.mf-clima { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.mf-clima-agora { margin: 0 0 6px; font-size: 0.85rem; }
+.mf-clima-temp { font-size: 1.6rem; font-weight: 800; margin-right: 4px; }
+.mf-clima-agora small { color: var(--muted); }
+.mf-fontes { margin: 10px 0 0; font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
+.mf-fontes a { color: var(--water); }
+.mf-indisponivel {
+  margin: 0; padding: 8px 10px; border-radius: 10px; font-size: 0.82rem;
+  background: var(--surface-2); border: 1px dashed var(--border-strong);
+}
+
+/* ---- Agente agrícola -------------------------------------------------------------------- */
+.ag-card .card-head { align-items: flex-end; flex-wrap: wrap; gap: 10px; }
+.ag-alvo { display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+.ag-alvo select {
+  min-height: 38px; min-width: 190px; padding: 0 10px; border-radius: 10px; font: inherit; font-size: 0.875rem;
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink);
+}
+.ag-temas { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.ag-form { display: flex; gap: 8px; }
+.ag-form input {
+  flex: 1; min-width: 0; min-height: 42px; padding: 0 12px; border-radius: 10px; font: inherit; font-size: 0.9rem;
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink);
+}
+.ag-legenda { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+.ag-tipo {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 700; border: 1px solid transparent; white-space: nowrap;
+}
+.ag-tipo.DADO { background: var(--info-bg); color: var(--info-ink); border-color: color-mix(in srgb, var(--info) 35%, transparent); }
+.ag-tipo.PUBLICO { background: var(--ok-bg); color: var(--ok-ink); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.ag-tipo.ESTIMATIVA { background: var(--warn-bg); color: var(--warn-ink); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+.ag-tipo.ORIENTACAO { background: var(--surface-3); color: var(--ink-2); border-color: var(--border-strong); }
+
+.ag-resposta { min-height: 60px; }
+.ag-cab h4 { margin: 0; font-size: 1.05rem; }
+.ag-cab p { margin: 2px 0 10px; color: var(--ink-2); font-size: 0.9rem; }
+.ag-aviso {
+  margin: 0 0 10px; padding: 8px 12px; border-radius: 10px; font-size: 0.85rem;
+  background: var(--warn-bg); border: 1px solid var(--warn); color: var(--ink);
+}
+.ag-itens {
+  list-style: none; margin: 0; padding: 0; display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+}
+.ag-item {
+  border: 1px solid var(--border); border-left: 4px solid var(--info); border-radius: 12px;
+  background: var(--surface-2); padding: 10px 12px; animation: ag-entrar .25s ease both;
+}
+.ag-item.nivel-ok { border-left-color: var(--ok); }
+.ag-item.nivel-atencao { border-left-color: var(--warn); }
+.ag-item.nivel-critico { border-left-color: var(--crit); }
+.ag-item-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.ag-item-cab b { font-size: 0.92rem; }
+.ag-item p { margin: 6px 0; font-size: 0.875rem; line-height: 1.5; }
+.ag-item small { color: var(--muted); font-size: 0.72rem; }
+.ag-rodape { margin: 10px 0 0; font-size: 0.72rem; color: var(--muted); }
+.ag-carregando { margin: 0; color: var(--ink-2); animation: ag-pulso 1.2s ease-in-out infinite; }
+@keyframes ag-entrar { from { opacity: 0; transform: translateY(4px); } }
+@keyframes ag-pulso { 50% { opacity: .45; } }
+
+/* ---- Telas menores ---------------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  .mf-mapa { height: 480px; }
+}
+@media (max-width: 560px) {
+  .mf-mapa { height: 62vh; min-height: 340px; }
+  .mf-desenho { left: 8px; right: 8px; top: auto; bottom: 28px; }
+  .ag-form { flex-direction: column; }
+  .ag-alvo, .ag-alvo select { width: 100%; }
+}
+
+@media print {
+  .mf-desenho, .mf-atalhos, .ag-temas, .ag-form { display: none !important; }
+}

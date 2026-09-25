@@ -8,3 +8,6 @@ biosolar:
   simulacao:
     # O ciclo automatico e acionado manualmente nos testes (SimuladorFazenda.executarCiclo)
     habilitada: false
+  mapa:
+    # Os testes nunca dependem da internet: IBGE e Open-Meteo ficam desligados (o agente informa "indisponivel")
+    fontes-publicas: false

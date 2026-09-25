@@ -66,10 +66,11 @@ API, o estado é **restaurado do banco** e as regras de segurança são reavalia
 | Camada | Tecnologia |
 |---|---|
 | Backend | Java 21, Spring Boot 3.5.16 (Web, Data JPA, Validation), Maven Wrapper |
-| Banco | PostgreSQL 17 + Flyway (migrações `V1` a `V3` em `db/migration`); H2 apenas em testes e no perfil de contingência |
+| Banco | PostgreSQL 17 + Flyway (migrações `V1` a `V4` em `db/migration`); H2 apenas em testes e no perfil de contingência |
 | Frontend | HTML5 semântico, CSS (tokens de tema), JavaScript sem build, gráficos SVG próprios |
 | Exportação | OpenPDF (PDF com gráficos vetoriais), Apache POI (Excel .xlsx), Spring Mail (envio SMTP pelo servidor) |
 | Assistente | Citrus: reconhecimento de fala do navegador (Web Speech API, pt-BR) + interpretação e dados no servidor |
+| Mapa da Fazenda | Leaflet 1.9.4 (local, em `frontend/vendor`), satélite Esri World Imagery, OpenStreetMap; IBGE (Localidades, Malhas, SIDRA/PAM) e Open-Meteo consultados pelo servidor |
 | Acessibilidade | ARIA, foco visível, navegação por teclado, Web Speech API, VLibras (opcional) |
 | Testes | JUnit 5, AssertJ, Spring Boot Test + MockMvc, GreenMail (SMTP em memória) |
 
@@ -94,6 +95,10 @@ Base: `http://localhost:8080`
 | GET · POST | `/exportacao/email` | Situação do envio (sem expor credenciais) · envia PDF/Excel por e-mail pelo servidor. `400` e-mail inválido · `429` limite por hora · `502` SMTP recusou · `503` SMTP não configurado |
 | POST | `/assistente/comando` | **Citrus**: `{"texto": "Citrus, quero o status"}` → resposta em texto, versão para voz e ação para o painel |
 | GET | `/assistente/exemplos` | Perguntas sugeridas pelo Citrus |
+| GET | `/mapa/talhoes` | **Mapa da Fazenda**: talhões ativos em GeoJSON (umidade, status, aspersor, área e se a posição é desenhada ou ilustrativa) |
+| PUT · DELETE | `/mapa/talhoes/{id}/area` | Grava a área desenhada `{"coordenadas": [[lng, lat], ...]}` (área geodésica calculada no servidor) · volta à posição ilustrativa. `400` polígono inválido · `404` talhão inexistente |
+| GET | `/mapa/municipio` · `/mapa/clima` | Capitão Poço (IBGE: território, contorno, produção de laranja/limão) · clima (Open-Meteo). Sem internet: `disponivel=false` com o motivo |
+| POST | `/mapa/agente` | **Agente agrícola**: `{"pergunta": "preciso irrigar o talhão C?"}` ou `{"talhaoId": "C", "tema": "SOLO"}` → itens marcados como dado, fonte pública, estimativa ou orientação |
 | POST | `/simulacao/velocidade` · `/pausa` · `/umidade` · `/reservatorio` · `/emergencia` · `/restaurar` | Painel de demonstração: altera **condições físicas** no servidor; as decisões continuam com o motor de regras |
 | GET · POST | `/talhoes` | **Cadastro**: lista (inclusive arquivados) e cadastra talhões. `201` criado · `400` dados inválidos · `409` código repetido/limite de 8 · `503` banco fora do ar |
 | GET · PUT · DELETE | `/talhoes/{id}` | Consulta, edita (o código não muda) e **exclui da operação** (arquiva: o histórico é preservado) |
@@ -332,12 +337,14 @@ cd backend
 .\mvnw.cmd test
 ```
 
-42 testes: os 5 exigidos pelo regulamento, mais rearme, prioridade P2 > P4, fim da irrigação no alvo,
+59 testes: os 5 exigidos pelo regulamento, mais rearme, prioridade P2 > P4, fim da irrigação no alvo,
 balanço hídrico, índice, CORS, retenção, testes ponta a ponta da API (MockMvc), cadastro (criar, validar, editar,
 arquivar, reativar, excluir, sincronizar com o banco, restaurar), robustez da gravação no banco, **exportações** (PDF
 com paginação, Excel com abas/filtros/formatos, mensagem do WhatsApp, envio de e-mail com anexos para um SMTP em
-memória, validação e limite de envios) e **Citrus** (cada pergunta, talhão falado por letra, ligar/desligar
-respeitando o bloqueio de emergência, comando desconhecido).
+memória, validação e limite de envios), **Citrus** (cada pergunta, talhão falado por letra, ligar/desligar
+respeitando o bloqueio de emergência, comando desconhecido) e **Mapa da Fazenda** (GeoJSON dos talhões, área
+geodésica, polígono inválido, desenhar/redesenhar/remover área, leitura das respostas do IBGE e do Open-Meteo,
+temas e talhão das perguntas, agente sem internet). Os testes nunca acessam a internet.
 
 | Teste | Cenário | Resultado esperado |
 |---|---|---|
@@ -450,6 +457,38 @@ Também responde sobre energia solar e sobre o índice. Quando não reconhece o 
 esse comando. Tente perguntar sobre o reservatório, talhões, irrigação, alertas ou relatório."
 Pela API: `POST /assistente/comando` com `{"texto": "como está o reservatório?"}`.
 
+## Mapa da Fazenda
+
+Menu **🛰️ Mapa da Fazenda**: imagem de **satélite real** da região de **Capitão Poço – PA** (Esri World Imagery), com
+zoom e arraste, mapa de ruas (OpenStreetMap) e o **limite oficial do município** (IBGE) no seletor de camadas.
+
+- **Talhões do banco**: `GET /mapa/talhoes` monta um GeoJSON com os talhões ativos (mesmo estado da automação: umidade,
+  status, aspersor) e a área de cada um na tabela `talhao_area` (migração **V4**). Nada de talhão fica no JavaScript.
+- **Posição ilustrativa × área desenhada**: enquanto a área real não é marcada, cada talhão aparece como um quadrado
+  **tracejado** com a área cadastrada, a ~7 km da sede, em uma área agrícola da região (a posição é calculada e nunca gravada). Para
+  registrar o local real: selecione o talhão → **✏️ Desenhar área** → clique nos cantos, em sequência → **Salvar área**
+  (Esc cancela, Backspace desfaz o último ponto, Enter salva). O servidor valida o polígono (pontos, cruzamentos,
+  tamanho), calcula a área geodésica e grava no PostgreSQL; o histórico registra *"Área marcada no mapa"*.
+- **Capitão Poço em dados públicos**: mesorregião, microrregião, área territorial e a produção de laranja e limão da
+  PAM/IBGE, com a posição do município entre os produtores do Pará; tempo atual, chuva e evapotranspiração (Open-Meteo).
+  O servidor consulta as fontes (cache de 24 h para o IBGE e 30 min para o clima); sem internet, o painel diz
+  "indisponível" e **nada é estimado no lugar**.
+- **🤖 Agente agrícola**: escolha a fazenda ou um talhão e um tema (*Resumo, Umidade, Irrigação, Solo, Clima, Cuidados,
+  Citros, Região*) ou pergunte em texto livre ("preciso irrigar o talhão C?", "vai chover?", "qual o solo do talhão A?").
+  É um agente **baseado em regras e em dados reais** (sem modelo de linguagem): cada informação sai marcada como
+  **📊 dado do sistema**, **🌐 fonte pública**, **≈ estimativa** (sempre com a base do cálculo, ex.: FAO-56 ETc = Kc × ET0)
+  ou **📘 orientação geral** (características das classes de solo, relação água × citros).
+
+| Serviço externo | Uso | Chave/conta |
+|---|---|---|
+| Esri World Imagery · Reference | Imagem de satélite e nomes/limites (carregados pelo navegador) | Não |
+| OpenStreetMap | Mapa de ruas (camada alternativa) | Não |
+| IBGE: Localidades, Malhas, SIDRA (tabela 1613) | Município, contorno, área, produção de citros | Não |
+| Open-Meteo | Tempo atual, chuva (7 dias e previsão de 3), ET0 | Não |
+
+Sem internet, os dados da fazenda, as áreas desenhadas e o agente continuam funcionando; só as imagens do mapa e os
+itens públicos ficam indisponíveis. Para desligar as consultas externas: `BIOSOLAR_MAPA_FONTES_PUBLICAS=false` no `.env`.
+
 ## Demonstração (roteiro para a banca)
 
 Use o botão **🎬 Demonstração** (topo da tela), que abre o painel ao lado do dashboard. Antes de apresentar, clique em
@@ -473,6 +512,8 @@ linguagem simples.
 9. **O sistema recusa**: aparece **🚨 AÇÃO BLOQUEADA** com a mensagem do servidor (HTTP 409).
 10. **Diferenciais**: pergunte ao **🎙️ Citrus** "o que está acontecendo?" e "gere um relatório"; exporte o PDF e o
     Excel, compartilhe pelo WhatsApp ou por e-mail; histórico, índice ("Como é calculado?") e ♿ acessibilidade.
+11. **🛰️ Mapa da Fazenda**: mostre os talhões sobre o satélite de Capitão Poço, desenhe a área de um talhão e peça ao
+    **🤖 agente agrícola** a análise do talhão (dado × fonte pública × estimativa × orientação).
 
 Pela API, sem o navegador:
 
@@ -507,27 +548,29 @@ backend/
 └── src/main/java/br/com/biosolar/citrus/
     ├── config/       CORS, agendamento, propriedades
     ├── controller/   Telemetria, Bomba, Historico, Indicadores, Relatorio, Simulacao, Talhao, Configuracao,
-    │                 Exportacao, Assistente
+    │                 Exportacao, Assistente, Mapa
     ├── dto/          records de resposta/requisição
     ├── exception/    ApiExceptionHandler + erros de domínio
-    ├── model/        Fazenda (agregado), Talhao, Reservatorio, Evento, leituras, CadastroTalhao/Reservatorio
+    ├── model/        Fazenda (agregado), Talhao, TalhaoArea, Reservatorio, Evento, leituras, CadastroTalhao/Reservatorio
     ├── repository/   Spring Data JPA
     ├── service/      MotorRegras, MotorDecisao, Indice, Telemetria, Acionamento, Relatorio, Cadastro…
     │   ├── exportacao/  Coleta, RelatorioPdf (+ GraficoPdf), RelatorioExcel, Compartilhamento, Email
-    │   └── assistente/  AssistenteService (Citrus)
+    │   ├── assistente/  AssistenteService (Citrus)
+    │   └── mapa/        MapaService, GeometriaTalhao, FontesPublicasService (IBGE, Open-Meteo), AgenteAgricolaService
     ├── simulation/   SimuladorFazenda, ModeloFisico, ModeloSolar, CenarioInicial
     └── util/
-    src/main/resources/db/migration/   V1 tabelas · V2 índices/restrições · V3 cadastro, views e comentários
+    src/main/resources/db/migration/   V1 tabelas · V2 índices/restrições · V3 cadastro, views e comentários · V4 área dos talhões no mapa
     src/main/resources/relatorio/      logos usadas no PDF, na planilha e no e-mail
 frontend/
 ├── index.html
 ├── assets/           logos (cabeçalho, carregamento, ícone da aba)
+├── vendor/leaflet/   Leaflet 1.9.4 (BSD-2), carregado só ao abrir o Mapa da Fazenda
 └── src/
     ├── components/   abas, carregamento, statusGeral, motorDecisao, mapaTalhoes, resumoTalhoes, controleAspersores,
-    │                 graficos, historico, alertas, periodo, gestao, exportacao, citrus…
-    ├── services/     api, telemetria, bomba, evento, simulacao, relatorio, cadastro, exportacao, assistente
+    │                 graficos, historico, alertas, periodo, gestao, exportacao, citrus, mapaFazenda…
+    ├── services/     api, telemetria, bomba, evento, simulacao, relatorio, cadastro, exportacao, assistente, mapa
     ├── styles/       tokens.css (temas), app.css, secoes.css (abas, carregamento, ajuda, gestão, animações),
-    │                 ferramentas.css (exportação e Citrus), print.css
+    │                 ferramentas.css (exportação e Citrus), mapa.css (Mapa da Fazenda e agente), print.css
     ├── utils/        format, dom, charts (SVG), voz, ajuda (botões ?)
     ├── config.js
     └── app.js

@@ -95,6 +95,7 @@ BS.app = (function () {
     C.citrus.iniciar();
     C.acessibilidade.iniciar();
     C.gestao.iniciar();
+    C.mapaFazenda.iniciar();
 
     var i = BS.config.intervalos;
     laco(carregarTelemetria, i.telemetria);

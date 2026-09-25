@@ -32,7 +32,7 @@
   }
 
   BS.api = {
-    get: function (caminho) { return requisitar('GET', caminho); },
+    get: function (caminho, opcoes) { return requisitar('GET', caminho, undefined, opcoes); },
     post: function (caminho, corpo, opcoes) { return requisitar('POST', caminho, corpo || {}, opcoes); },
     put: function (caminho, corpo) { return requisitar('PUT', caminho, corpo || {}); },
     del: function (caminho) { return requisitar('DELETE', caminho); },

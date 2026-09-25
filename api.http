@@ -131,3 +131,44 @@ Content-Type: application/json
   "talhaoId": "Z",
   "ligado": true
 }
+
+# =============================================================================
+# Mapa da Fazenda (Capitão Poço - PA) e agente agrícola
+# =============================================================================
+
+### Talhões em GeoJSON (umidade, status e área desenhada ou posição ilustrativa)
+GET {{api}}/mapa/talhoes
+
+### Desenhar a área do Talhão C: cantos em sequência, [longitude, latitude]
+PUT {{api}}/mapa/talhoes/C/area
+Content-Type: application/json
+
+{
+  "coordenadas": [[-47.1285, -1.7575], [-47.1259, -1.7575], [-47.1259, -1.7601], [-47.1285, -1.7601]]
+}
+
+### Voltar o Talhão C à posição ilustrativa
+DELETE {{api}}/mapa/talhoes/C/area
+
+### Capitão Poço: IBGE (território, contorno, produção de laranja e limão)
+GET {{api}}/mapa/municipio
+
+### Clima na fazenda (Open-Meteo)
+GET {{api}}/mapa/clima
+
+### Agente agrícola: pergunta livre
+POST {{api}}/mapa/agente
+Content-Type: application/json
+
+{
+  "pergunta": "Preciso irrigar o talhão C?"
+}
+
+### Agente agrícola: tema de um talhão (GERAL, UMIDADE, IRRIGACAO, SOLO, CLIMA, CUIDADOS, CITROS, REGIAO)
+POST {{api}}/mapa/agente
+Content-Type: application/json
+
+{
+  "talhaoId": "A",
+  "tema": "SOLO"
+}

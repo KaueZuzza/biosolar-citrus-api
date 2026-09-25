@@ -69,6 +69,13 @@ biosolar:
     starttls: ${BIOSOLAR_SMTP_STARTTLS:true}
     ssl: ${BIOSOLAR_SMTP_SSL:false}
     limite-por-hora: ${BIOSOLAR_SMTP_LIMITE_HORA:20}
+  # Mapa da Fazenda: Capitao Poco - PA. Fontes publicas (IBGE, Open-Meteo) consultadas pelo servidor, com cache.
+  # fazenda-latitude/longitude: onde os talhoes aparecem enquanto a area real nao for desenhada (posicao ilustrativa)
+  mapa:
+    municipio-ibge: "1502301"
+    fazenda-latitude: -1.75685
+    fazenda-longitude: -47.12646
+    fontes-publicas: ${BIOSOLAR_MAPA_FONTES_PUBLICAS:true}
 
 logging:
   level:

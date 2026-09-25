@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="src/styles/app.css">
   <link rel="stylesheet" href="src/styles/secoes.css">
   <link rel="stylesheet" href="src/styles/ferramentas.css">
+  <link rel="stylesheet" href="src/styles/mapa.css">
   <link rel="stylesheet" href="src/styles/print.css" media="print">
   <script>
     // Aplica as preferências VISUAIS salvas antes da renderização (evita piscar o tema).
@@ -131,6 +132,7 @@
         <a href="#monitoramento" data-aba="monitoramento"><span aria-hidden="true">📡</span> Monitoramento <span class="aba-badge" id="aba-alertas" hidden></span></a>
         <a href="#relatorios" data-aba="relatorios"><span aria-hidden="true">📊</span> Relatórios</a>
         <a href="#gestao" data-aba="gestao"><span aria-hidden="true">⚙️</span> Gestão</a>
+        <a href="#mapa" data-aba="mapa"><span aria-hidden="true">🛰️</span> Mapa da Fazenda</a>
       </div>
     </nav>
   </header>
@@ -580,6 +582,108 @@
         </section>
       </div>
     </section>
+
+    <!-- ============================================================ -->
+    <!-- ABA: MAPA DA FAZENDA (satélite + agente agrícola)             -->
+    <!-- Independente das demais: Leaflet só é carregado ao abrir.     -->
+    <!-- ============================================================ -->
+    <section class="aba" id="aba-mapa" data-aba="mapa" aria-labelledby="titulo-mapa" hidden>
+      <h2 class="sr-only" id="titulo-mapa" tabindex="-1">Mapa da Fazenda</h2>
+      <div class="grid">
+        <section class="card span-8 mf-card" aria-labelledby="mf-titulo">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title" id="mf-titulo">🛰️ Mapa da Fazenda · Capitão Poço – PA <button type="button" class="ajuda" data-ajuda="mapa-fazenda"></button></h3>
+              <p class="card-sub">Imagem de satélite real. Talhões, umidade e áreas vêm da API e do PostgreSQL.</p>
+            </div>
+            <div class="mf-atalhos">
+              <button class="btn btn-sm" type="button" id="mf-ir-fazenda">📍 Fazenda</button>
+              <button class="btn btn-sm" type="button" id="mf-ir-municipio">🏙️ Capitão Poço</button>
+            </div>
+          </div>
+          <div class="mf-mapa-wrap">
+            <div class="mf-mapa" id="mf-mapa" role="region" aria-label="Mapa de satélite da fazenda em Capitão Poço, Pará. Use a lista de talhões ao lado para navegar pelo teclado."></div>
+            <div class="mf-desenho" id="mf-desenho" role="group" aria-label="Desenho da área do talhão" hidden>
+              <p><b id="mf-desenho-titulo">Desenhando a área</b> <span id="mf-desenho-info">Clique no mapa nos cantos do talhão, em sequência.</span></p>
+              <div class="mf-desenho-acoes">
+                <button class="btn btn-sm" type="button" id="mf-desenho-desfazer" disabled>↶ Desfazer ponto</button>
+                <button class="btn btn-sm btn-primary" type="button" id="mf-desenho-salvar" disabled>✔ Salvar área</button>
+                <button class="btn btn-sm btn-ghost" type="button" id="mf-desenho-cancelar">✕ Cancelar</button>
+              </div>
+            </div>
+            <p class="mf-estado" id="mf-estado" role="status">Carregando o mapa…</p>
+          </div>
+          <div class="legend mf-legenda" aria-hidden="true">
+            <span><i class="mf-amostra st-NORMAL"></i>Normal</span>
+            <span><i class="mf-amostra st-ATENCAO"></i>Atenção</span>
+            <span><i class="mf-amostra st-CRITICO"></i>Crítico</span>
+            <span><i class="mf-amostra ilustrativa"></i>Posição ilustrativa</span>
+            <span><i class="mf-amostra municipio"></i>Limite do município (IBGE)</span>
+          </div>
+          <p class="mf-aviso" id="mf-aviso" hidden></p>
+        </section>
+
+        <div class="span-4 mf-lateral">
+          <section class="card" aria-labelledby="mf-talhoes-titulo">
+            <div class="card-head">
+              <div>
+                <h3 class="card-title" id="mf-talhoes-titulo">🌱 Talhões no mapa <button type="button" class="ajuda" data-ajuda="posicao-ilustrativa"></button></h3>
+                <p class="card-sub">Selecione para localizar, desenhar a área ou analisar.</p>
+              </div>
+            </div>
+            <ul class="mf-lista" id="mf-lista" aria-label="Talhões"></ul>
+          </section>
+
+          <section class="card" aria-labelledby="mf-regiao-titulo">
+            <div class="card-head">
+              <div>
+                <h3 class="card-title" id="mf-regiao-titulo">🏙️ Capitão Poço – PA <button type="button" class="ajuda" data-ajuda="fontes-publicas"></button></h3>
+                <p class="card-sub">Dados públicos consultados pelo servidor.</p>
+              </div>
+            </div>
+            <div id="mf-regiao"><p class="muted small">Carregando dados do IBGE…</p></div>
+            <div class="mf-clima" id="mf-clima"><p class="muted small">Carregando o clima…</p></div>
+            <p class="mf-fontes" id="mf-fontes"></p>
+          </section>
+        </div>
+
+        <section class="card span-12 ag-card" id="agente" aria-labelledby="ag-titulo">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title" id="ag-titulo">🤖 Agente agrícola <button type="button" class="ajuda" data-ajuda="agente-agricola"></button></h3>
+              <p class="card-sub">Analisa os dados do BioSolar e de fontes públicas e explica em linguagem simples. Nunca inventa dados.</p>
+            </div>
+            <label class="ag-alvo">Analisar
+              <select id="ag-alvo"><option value="">Fazenda inteira</option></select>
+            </label>
+          </div>
+          <div class="ag-temas" role="group" aria-label="Temas de análise">
+            <button class="btn btn-sm" type="button" data-tema="GERAL">📋 Resumo</button>
+            <button class="btn btn-sm" type="button" data-tema="UMIDADE">💧 Umidade</button>
+            <button class="btn btn-sm" type="button" data-tema="IRRIGACAO">🚿 Irrigação</button>
+            <button class="btn btn-sm" type="button" data-tema="SOLO">🟫 Solo</button>
+            <button class="btn btn-sm" type="button" data-tema="CLIMA">🌦️ Clima</button>
+            <button class="btn btn-sm" type="button" data-tema="CUIDADOS">🩺 Cuidados</button>
+            <button class="btn btn-sm" type="button" data-tema="CITROS">🍊 Citros</button>
+            <button class="btn btn-sm" type="button" data-tema="REGIAO">🏙️ Região</button>
+          </div>
+          <form class="ag-form" id="ag-form" autocomplete="off">
+            <label class="sr-only" for="ag-pergunta">Pergunta para o agente agrícola</label>
+            <input id="ag-pergunta" type="text" maxlength="300" placeholder="Pergunte, ex.: preciso irrigar o talhão C? vai chover? qual o solo do talhão A?">
+            <button class="btn btn-primary" type="submit">Perguntar</button>
+          </form>
+          <p class="ag-legenda" aria-label="Tipos de informação">
+            <span class="ag-tipo DADO">📊 Dado do sistema</span>
+            <span class="ag-tipo PUBLICO">🌐 Fonte pública</span>
+            <span class="ag-tipo ESTIMATIVA">≈ Estimativa</span>
+            <span class="ag-tipo ORIENTACAO">📘 Orientação geral</span>
+          </p>
+          <div class="ag-resposta" id="ag-resposta" aria-live="polite">
+            <p class="muted">Escolha um tema, um talhão ou faça uma pergunta.</p>
+          </div>
+        </section>
+      </div>
+    </section>
   </main>
 
   <!-- ===================== PAINEL DE DEMONSTRAÇÃO (lateral) ===================== -->
@@ -900,6 +1004,7 @@
   <script src="src/services/cadastroService.js"></script>
   <script src="src/services/exportacaoService.js"></script>
   <script src="src/services/assistenteService.js"></script>
+  <script src="src/services/mapaService.js"></script>
   <script src="src/components/carregamento.js"></script>
   <script src="src/components/abas.js"></script>
   <script src="src/components/statusGeral.js"></script>
@@ -922,6 +1027,7 @@
   <script src="src/components/gestao.js"></script>
   <script src="src/components/acessibilidade.js"></script>
   <script src="src/components/saude.js"></script>
+  <script src="src/components/mapaFazenda.js"></script>
   <script src="src/app.js"></script>
 </body>
 </html>
