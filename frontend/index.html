@@ -6,10 +6,12 @@
   <meta name="description" content="BioSolar Citrus: Centro Inteligente de Automação Hidro-Energética para pomares de citros.">
   <meta name="theme-color" content="#0f1512">
   <title>BioSolar Citrus · Centro de Operação</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23ff922b'/%3E%3Ccircle cx='32' cy='32' r='20' fill='%23ffd8a8'/%3E%3Cpath d='M32 12v40M12 32h40M18 18l28 28M46 18L18 46' stroke='%23ff922b' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/logo-emblema.png">
   <link rel="stylesheet" href="src/styles/tokens.css">
   <link rel="stylesheet" href="src/styles/app.css">
   <link rel="stylesheet" href="src/styles/secoes.css">
+  <link rel="stylesheet" href="src/styles/ferramentas.css">
   <link rel="stylesheet" href="src/styles/print.css" media="print">
   <script>
     // Aplica as preferências VISUAIS salvas antes da renderização (evita piscar o tema).
@@ -31,17 +33,10 @@
   <!-- ===================== TELA DE CARREGAMENTO ===================== -->
   <div class="carregamento" id="carregamento" role="status" aria-live="polite" aria-labelledby="carregamento-titulo">
     <div class="carregamento-caixa">
-      <svg class="carregamento-logo" width="72" height="72" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <g stroke="#f5b700" stroke-width="3" stroke-linecap="round">
-          <path d="M32 3v6M32 55v6M3 32h6M55 32h6M11.5 11.5l4.2 4.2M48.3 48.3l4.2 4.2M11.5 52.5l4.2-4.2M48.3 15.7l4.2-4.2"/>
-        </g>
-        <circle cx="32" cy="32" r="19" fill="#ff922b"/>
-        <circle cx="32" cy="32" r="15" fill="#ffe8cc"/>
-        <path d="M32 24c-3.6 4.6-5.4 7.7-5.4 10.1a5.4 5.4 0 0 0 10.8 0c0-2.4-1.8-5.5-5.4-10.1z" fill="#1c7ed6"/>
-      </svg>
-      <p class="carregamento-marca">Bio<span>Solar</span> Citrus</p>
+      <div class="carregamento-logo"><img src="assets/logo-biosolar.png" width="190" height="192" alt="BioSolar Citrus"></div>
       <p class="carregamento-titulo" id="carregamento-titulo">Iniciando o centro de operação…</p>
-      <div class="carregamento-barra" aria-hidden="true"><i></i></div>
+      <div class="carregamento-barra" id="carregamento-barra" aria-hidden="true"><i></i></div>
+      <p class="carregamento-pct" id="carregamento-pct" aria-hidden="true">0%</p>
       <ul class="carregamento-passos">
         <li data-passo="api" data-estado="aguardando"><span class="ic" aria-hidden="true">⏳</span><span data-texto>Conectando à API do servidor</span></li>
         <li data-passo="banco" data-estado="aguardando"><span class="ic" aria-hidden="true">⏳</span><span data-texto>Verificando o banco de dados PostgreSQL</span></li>
@@ -60,17 +55,7 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <svg width="42" height="42" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-          <g stroke="#f5b700" stroke-width="3" stroke-linecap="round">
-            <path d="M32 3v6M32 55v6M3 32h6M55 32h6M11.5 11.5l4.2 4.2M48.3 48.3l4.2 4.2M11.5 52.5l4.2-4.2M48.3 15.7l4.2-4.2"/>
-          </g>
-          <circle cx="32" cy="32" r="19" fill="#ff922b"/>
-          <circle cx="32" cy="32" r="15" fill="#ffe8cc"/>
-          <g stroke="#ff922b" stroke-width="2.2">
-            <path d="M32 17v30M17 32h30M21.4 21.4l21.2 21.2M42.6 21.4L21.4 42.6"/>
-          </g>
-          <path d="M32 24c-3.6 4.6-5.4 7.7-5.4 10.1a5.4 5.4 0 0 0 10.8 0c0-2.4-1.8-5.5-5.4-10.1z" fill="#1c7ed6"/>
-        </svg>
+        <span class="brand-logo"><img src="assets/logo-emblema.png" width="48" height="48" alt=""></span>
         <div>
           <p class="brand-title">Bio<span>Solar</span> Citrus</p>
           <p class="brand-sub">Centro Inteligente de Automação Hidro-Energética</p>
@@ -89,7 +74,34 @@
         </span>
 
         <button class="btn btn-sm btn-demo" id="btn-demo" type="button" aria-expanded="false" aria-controls="painel-demo">🎬 Demonstração</button>
-        <button class="icon-btn" id="btn-voz" type="button" aria-label="Ouvir status da fazenda" title="Ouvir status da fazenda">🔊</button>
+        <div class="citrus-wrap">
+          <button class="icon-btn citrus-btn" id="btn-citrus" type="button" aria-haspopup="dialog" aria-expanded="false"
+                  aria-controls="painel-citrus" aria-label="Falar com o Citrus, assistente por voz" title="Citrus: assistente por voz">🎙️</button>
+          <section class="citrus-panel" id="painel-citrus" role="dialog" aria-labelledby="citrus-titulo" hidden>
+            <div class="citrus-head">
+              <span class="citrus-avatar" aria-hidden="true"><img src="assets/logo-emblema.png" width="34" height="34" alt=""></span>
+              <div>
+                <h2 id="citrus-titulo">Citrus</h2>
+                <p>Assistente operacional · dados em tempo real</p>
+              </div>
+              <button type="button" class="ajuda" data-ajuda="citrus"></button>
+              <button class="btn btn-sm btn-ghost" type="button" id="citrus-fechar" aria-label="Fechar o Citrus">✕</button>
+            </div>
+            <div class="citrus-estado" id="citrus-estado" data-estado="pronto">
+              <span class="citrus-onda" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+              <span id="citrus-estado-texto" aria-live="polite">Toque no microfone e fale. Ex.: "Citrus, quero o status".</span>
+            </div>
+            <ol class="citrus-conversa" id="citrus-conversa" aria-label="Conversa com o Citrus"></ol>
+            <div class="citrus-sugestoes" id="citrus-sugestoes" aria-label="Sugestões de perguntas"></div>
+            <form class="citrus-entrada" id="citrus-form" autocomplete="off">
+              <button type="button" class="citrus-mic" id="citrus-mic" aria-pressed="false" aria-label="Falar com o Citrus">🎙️</button>
+              <label class="sr-only" for="citrus-texto">Pergunta para o Citrus</label>
+              <input id="citrus-texto" type="text" maxlength="300" placeholder="Ou digite: como está o reservatório?">
+              <button class="btn btn-sm btn-primary" type="submit">Enviar</button>
+            </form>
+            <label class="citrus-opcao"><input type="checkbox" id="citrus-falar"> Responder também em voz</label>
+          </section>
+        </div>
 
         <div class="notif-wrap">
           <button class="icon-btn" id="btn-notif" type="button" aria-haspopup="true" aria-expanded="false"
@@ -219,7 +231,7 @@
           </div>
           <div class="tanque-wrap">
             <div class="tanque" id="tanque" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Nível do reservatório">
-              <div class="tanque-agua" id="tanque-agua" style="height:0%"></div>
+              <div class="tanque-agua" id="tanque-agua" style="height:0%"><span class="bolhas" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>
               <div class="marca" style="bottom:30%"><span>30% atenção</span></div>
               <div class="marca" style="bottom:20%"><span>20% rearme</span></div>
               <div class="marca baixo" style="bottom:15%"><span>15% crítico</span></div>
@@ -439,14 +451,56 @@
         </section>
 
         <div class="span-5 coluna">
-          <section class="card" aria-labelledby="rel-titulo">
+          <section class="card exportacao" id="exportacao" aria-labelledby="rel-titulo">
             <div class="card-head">
               <div>
-                <h3 class="card-title" id="rel-titulo">📤 Relatório operacional <button type="button" class="ajuda" data-ajuda="relatorio"></button></h3>
-                <p class="card-sub">Resumo do período com PDF, impressão, CSV e WhatsApp.</p>
+                <h3 class="card-title" id="rel-titulo">📤 Exportar e compartilhar <button type="button" class="ajuda" data-ajuda="relatorio"></button></h3>
+                <p class="card-sub">Relatório gerado pelo servidor com os dados do PostgreSQL.</p>
               </div>
             </div>
-            <button class="btn btn-primary" type="button" id="btn-relatorio" style="width:100%">📄 Gerar relatório</button>
+
+            <div class="exp-grupo" role="group" aria-labelledby="exp-g-exportar">
+              <h4 class="exp-grupo-titulo" id="exp-g-exportar">Exportar</h4>
+              <div class="exp-opcao">
+                <span class="exp-icone" aria-hidden="true">📄</span>
+                <div class="exp-texto"><b>PDF</b><span>Relatório completo com gráficos, pronto para imprimir.</span></div>
+                <div class="exp-acoes">
+                  <button class="btn btn-sm" type="button" data-exportar="pdf-abrir" aria-label="Abrir o relatório em PDF">Abrir</button>
+                  <button class="btn btn-sm btn-primary" type="button" data-exportar="pdf" aria-label="Baixar o relatório em PDF">Baixar</button>
+                </div>
+              </div>
+              <div class="exp-opcao">
+                <span class="exp-icone" aria-hidden="true">📊</span>
+                <div class="exp-texto"><b>Excel</b><span>Planilha com 6 abas, filtros e formatos para análise.</span></div>
+                <div class="exp-acoes">
+                  <button class="btn btn-sm btn-primary" type="button" data-exportar="excel" aria-label="Baixar a planilha Excel">Baixar</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="exp-grupo" role="group" aria-labelledby="exp-g-compartilhar">
+              <h4 class="exp-grupo-titulo" id="exp-g-compartilhar">Compartilhar</h4>
+              <div class="exp-opcao">
+                <span class="exp-icone" aria-hidden="true">💬</span>
+                <div class="exp-texto"><b>WhatsApp</b><span>Mensagem curta com o status atual da fazenda.</span></div>
+                <div class="exp-acoes">
+                  <button class="btn btn-sm" type="button" data-exportar="whatsapp" aria-label="Compartilhar o status pelo WhatsApp">Compartilhar</button>
+                </div>
+              </div>
+              <div class="exp-opcao">
+                <span class="exp-icone" aria-hidden="true">✉️</span>
+                <div class="exp-texto"><b>E-mail</b><span id="exp-email-sub">PDF ou Excel enviado pelo servidor.</span></div>
+                <div class="exp-acoes">
+                  <button class="btn btn-sm" type="button" data-exportar="email" aria-label="Enviar o relatório por e-mail">Enviar</button>
+                </div>
+              </div>
+            </div>
+
+            <p class="exp-rodape">
+              <button class="btn-link" type="button" id="btn-relatorio">👁️ Ver o resumo na tela</button>
+              <span aria-hidden="true">·</span>
+              <a class="btn-link" id="rel-csv" href="#" download>CSV (dados brutos)</a>
+            </p>
           </section>
 
           <section class="card" aria-labelledby="periodo-titulo">
@@ -623,12 +677,73 @@
       <button class="btn btn-sm btn-ghost" type="button" data-fechar aria-label="Fechar">✕</button>
     </div>
     <div class="dlg-body" id="relatorio-corpo"><p>Gerando…</p></div>
-    <div class="dlg-foot">
-      <button class="btn" type="button" id="rel-copiar">📋 Copiar resumo</button>
-      <a class="btn" id="rel-csv" href="#" download>⬇️ CSV</a>
-      <button class="btn" type="button" id="rel-whatsapp">📱 WhatsApp</button>
-      <button class="btn btn-primary" type="button" id="rel-imprimir">🖨️ Imprimir / PDF</button>
+    <div class="dlg-foot exp-foot">
+      <div class="exp-foot-grupo" role="group" aria-label="Exportar">
+        <span class="exp-foot-rotulo">Exportar</span>
+        <button class="btn btn-sm" type="button" data-exportar="pdf-abrir">📄 PDF</button>
+        <button class="btn btn-sm" type="button" data-exportar="excel">📊 Excel</button>
+      </div>
+      <div class="exp-foot-grupo" role="group" aria-label="Compartilhar">
+        <span class="exp-foot-rotulo">Compartilhar</span>
+        <button class="btn btn-sm" type="button" data-exportar="whatsapp">💬 WhatsApp</button>
+        <button class="btn btn-sm" type="button" data-exportar="email">✉️ E-mail</button>
+      </div>
+      <button class="btn btn-sm btn-ghost" type="button" id="rel-copiar">📋 Copiar resumo</button>
     </div>
+  </dialog>
+
+  <dialog id="dlg-whatsapp" aria-labelledby="dlg-wpp-titulo" style="width:min(520px,calc(100vw - 32px))">
+    <div class="dlg-head">
+      <h2 id="dlg-wpp-titulo">💬 Compartilhar pelo WhatsApp</h2>
+      <button class="btn btn-sm btn-ghost" type="button" data-fechar aria-label="Fechar">✕</button>
+    </div>
+    <div class="dlg-body">
+      <p class="small muted">Mensagem resumida com os dados de agora. Confira antes de enviar:</p>
+      <div class="wpp-previa" id="wpp-previa" aria-live="polite"><p class="muted">Consultando o servidor…</p></div>
+      <div class="campo">
+        <div class="campo-rotulo"><label for="wpp-numero">Enviar para um número (opcional)</label><button type="button" class="ajuda" data-ajuda="wpp-numero"></button></div>
+        <input id="wpp-numero" type="tel" inputmode="tel" maxlength="20" placeholder="Ex.: (91) 98888-7777 — em branco para escolher o contato">
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" id="wpp-copiar">📋 Copiar</button>
+      <button class="btn" type="button" id="wpp-pdf" hidden>📎 Enviar com o PDF</button>
+      <button class="btn" type="button" id="wpp-sistema" hidden>📤 Outros apps…</button>
+      <button class="btn btn-primary" type="button" id="wpp-abrir">💬 Abrir no WhatsApp</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-email" aria-labelledby="dlg-email-titulo" style="width:min(560px,calc(100vw - 32px))">
+    <form id="form-email" novalidate>
+      <div class="dlg-head">
+        <h2 id="dlg-email-titulo">✉️ Enviar relatório por e-mail</h2>
+        <button class="btn btn-sm btn-ghost" type="button" data-fechar aria-label="Fechar">✕</button>
+      </div>
+      <div class="dlg-body">
+        <div class="email-aviso" id="email-aviso" role="status" hidden></div>
+        <div class="campo">
+          <div class="campo-rotulo"><label for="email-para">Para</label><button type="button" class="ajuda" data-ajuda="email-para"></button></div>
+          <input id="email-para" name="destinatarios" type="email" multiple required maxlength="500" autocomplete="email" placeholder="gestor@fazenda.com.br">
+        </div>
+        <label class="campo">Assunto
+          <input id="email-assunto" name="assunto" type="text" maxlength="150">
+        </label>
+        <label class="campo">Mensagem (opcional)
+          <textarea id="email-mensagem" name="mensagem" rows="3" maxlength="2000" placeholder="Ex.: Segue o relatório da operação de hoje."></textarea>
+        </label>
+        <fieldset class="email-anexo">
+          <legend>Anexo</legend>
+          <label><input type="radio" name="anexo" value="PDF" checked> 📄 PDF</label>
+          <label><input type="radio" name="anexo" value="EXCEL"> 📊 Excel</label>
+          <label><input type="radio" name="anexo" value="AMBOS"> 📄 + 📊 Os dois</label>
+        </fieldset>
+        <div class="form-erros" id="email-erros" role="alert" hidden></div>
+      </div>
+      <div class="dlg-foot">
+        <button class="btn" type="button" data-fechar>Cancelar</button>
+        <button class="btn btn-primary" type="submit" id="email-enviar">✉️ Enviar</button>
+      </div>
+    </form>
   </dialog>
 
   <dialog id="dlg-cadastro" aria-labelledby="dlg-cad-titulo" style="width:min(760px,calc(100vw - 32px))">
@@ -742,7 +857,7 @@
       <section class="a11y-sec" aria-labelledby="a11y-mov">
         <h3 id="a11y-mov">Movimento</h3>
         <label class="switch"><span>Reduzir animações</span><input type="checkbox" id="pref-movimento"></label>
-        <p class="small muted">A preferência "reduzir movimento" do sistema operacional é respeitada automaticamente.</p>
+        <p class="small muted">Desliga ondas do reservatório, jatos de irrigação, pulsos e a animação dos gráficos. Vale na hora e fica salvo neste navegador.</p>
       </section>
       <section class="a11y-sec" aria-labelledby="a11y-voz">
         <h3 id="a11y-voz">Leitura em voz</h3>
@@ -782,6 +897,8 @@
   <script src="src/services/simulacaoService.js"></script>
   <script src="src/services/relatorioService.js"></script>
   <script src="src/services/cadastroService.js"></script>
+  <script src="src/services/exportacaoService.js"></script>
+  <script src="src/services/assistenteService.js"></script>
   <script src="src/components/carregamento.js"></script>
   <script src="src/components/abas.js"></script>
   <script src="src/components/statusGeral.js"></script>
@@ -798,6 +915,8 @@
   <script src="src/components/notificacoes.js"></script>
   <script src="src/components/painelSimulacao.js"></script>
   <script src="src/components/relatorio.js"></script>
+  <script src="src/components/exportacao.js"></script>
+  <script src="src/components/citrus.js"></script>
   <script src="src/components/periodo.js"></script>
   <script src="src/components/gestao.js"></script>
   <script src="src/components/acessibilidade.js"></script>

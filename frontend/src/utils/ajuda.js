@@ -36,7 +36,10 @@
     saude: ['Saúde do sistema', 'Mostra se cada parte está funcionando: o servidor (API), o banco de dados, o simulador, os sensores de umidade e as bombas.'],
 
     // Relatórios
-    relatorio: ['Relatório operacional', 'Resumo do período com os principais números. Pode ser impresso, salvo em PDF, exportado para planilha (CSV) ou enviado pelo WhatsApp.'],
+    relatorio: ['Exportar e compartilhar', 'PDF: relatório completo com gráficos, para ler ou imprimir. Excel: planilha com uma aba por assunto, filtros e números prontos para análise. WhatsApp: mensagem curta com o status de agora. E-mail: o servidor envia o PDF e/ou o Excel. Tudo vem do banco de dados no momento do clique.'],
+    'wpp-numero': ['Número do WhatsApp', 'Opcional. Com DDD, só números ou do jeito que preferir, ex.: (91) 98888-7777. Em branco, o WhatsApp abre para você escolher o contato ou o grupo.'],
+    'email-para': ['Destinatários', 'Um ou mais e-mails separados por vírgula (máximo 5). O e-mail sai do servidor da fazenda; nenhuma senha passa pelo navegador.'],
+    citrus: ['Citrus, o assistente', 'Toque no microfone e fale como falaria com uma pessoa: \"Citrus, quero o status\", \"como está o reservatório?\", \"mostre o talhão C\", \"gere um relatório\". Ele consulta os dados reais da fazenda e responde em texto e em voz. Também liga ou desliga um aspersor, sempre com as mesmas regras de segurança do painel. Sem microfone, digite a pergunta.'],
     periodo: ['Indicadores do período', 'Totais acumulados desde a última vez que o cenário foi restaurado: água e energia gastas, níveis do reservatório e quantas irrigações ocorreram.'],
 
     // Gestão

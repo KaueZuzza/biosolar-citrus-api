@@ -636,13 +636,7 @@ dialog.lateral { margin: 0 0 0 auto; height: 100vh; max-height: 100vh; border-ra
 footer.rodape { max-width: 1480px; margin: 0 auto; padding: 0 16px 32px; font-size: 0.8rem; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; }
 footer.rodape code { font-family: var(--mono); }
 
-/* ---- Movimento reduzido (preferência do SO ou da Central de Acessibilidade) ---- */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
-}
-:root[data-motion="reduzido"] *, :root[data-motion="reduzido"] *::before, :root[data-motion="reduzido"] *::after {
-  animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important;
-}
+/* ---- Movimento reduzido: controlado pela Central de Acessibilidade (ver secoes.css, "ANIMAÇÕES") ---- */
 
 /* Cores forçadas (Windows alto contraste) */
 @media (forced-colors: active) {

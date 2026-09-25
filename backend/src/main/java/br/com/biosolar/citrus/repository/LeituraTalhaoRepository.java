@@ -27,6 +27,24 @@ public interface LeituraTalhaoRepository extends JpaRepository<LeituraTalhao, Lo
             """)
     List<ResumoUmidade> resumoPorTalhao();
 
+    /** Parcela das leituras com o aspersor ligado, por talhao ("% do tempo irrigando" no relatorio). */
+    @Query("""
+            select lt.talhaoId as talhaoId,
+                   sum(case when lt.aspersorLigado = true then 1 else 0 end) as ligadas,
+                   count(lt) as total
+            from LeituraTalhao lt
+            group by lt.talhaoId
+            """)
+    List<TempoIrrigacao> tempoIrrigando();
+
+    interface TempoIrrigacao {
+        String getTalhaoId();
+
+        Long getLigadas();
+
+        Long getTotal();
+    }
+
     interface ResumoUmidade {
         String getTalhaoId();
 

@@ -1,0 +1,185 @@
+/* Exportar e compartilhar (aba Relatórios) e assistente Citrus (topo). */
+
+:root {
+  --wpp-fundo: #efeae2;
+  --wpp-balao: #d9fdd3;
+  --wpp-texto: #111b21;
+}
+:root[data-theme="dark"] {
+  --wpp-fundo: #0b141a;
+  --wpp-balao: #005c4b;
+  --wpp-texto: #e9edef;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --wpp-fundo: #0b141a;
+    --wpp-balao: #005c4b;
+    --wpp-texto: #e9edef;
+  }
+}
+
+.btn-link {
+  background: none; border: 0; padding: 4px 2px; cursor: pointer;
+  color: var(--water); font: inherit; font-weight: 650; text-decoration: underline; text-underline-offset: 3px;
+}
+.btn-link:hover { color: var(--ink); }
+
+/* ---- Exportar e compartilhar ---------------------------------------------------------- */
+.exportacao .card-head { margin-bottom: 8px; }
+.exp-grupo { display: grid; gap: 8px; margin-top: 12px; }
+.exp-grupo-titulo {
+  font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.exp-grupo-titulo::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.exp-opcao {
+  display: grid; grid-template-columns: 42px 1fr auto; gap: 12px; align-items: center;
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2);
+  transition: border-color .2s, box-shadow .2s, transform .15s;
+}
+.exp-opcao:hover { border-color: var(--border-strong); box-shadow: var(--shadow); transform: translateY(-1px); }
+.exp-icone {
+  width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 1.35rem;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.exp-texto { display: grid; gap: 1px; min-width: 0; }
+.exp-texto b { font-size: 0.95rem; }
+.exp-texto span { font-size: 0.8rem; color: var(--muted); }
+.exp-acoes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.exp-acoes .btn { min-width: 84px; }
+.exp-rodape { margin-top: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.82rem; color: var(--muted); }
+.exportacao.destaque { animation: destaque-card 1.8s ease; }
+@keyframes destaque-card {
+  0%, 60% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 45%, transparent), var(--shadow); }
+  100% { box-shadow: var(--shadow); }
+}
+@media (max-width: 420px) {
+  .exp-opcao { grid-template-columns: 42px 1fr; }
+  .exp-acoes { grid-column: 1 / -1; justify-content: stretch; }
+  .exp-acoes .btn { flex: 1; }
+}
+
+/* Rodapé do resumo na tela: mesmos dois grupos */
+.exp-foot { justify-content: space-between; align-items: center; }
+.exp-foot-grupo { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.exp-foot-rotulo { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-right: 2px; }
+
+/* ---- WhatsApp -------------------------------------------------------------------------- */
+.wpp-previa {
+  background: var(--wpp-fundo); border-radius: 12px; padding: 14px; max-height: 320px; overflow: auto;
+  border: 1px solid var(--border);
+}
+.wpp-balao {
+  background: var(--wpp-balao); color: var(--wpp-texto); border-radius: 10px 10px 10px 2px; padding: 10px 12px;
+  white-space: pre-wrap; font-size: 0.9rem; line-height: 1.5; box-shadow: 0 1px 1px rgba(0, 0, 0, .12);
+  max-width: 100%; overflow-wrap: anywhere;
+}
+
+/* ---- E-mail ----------------------------------------------------------------------------- */
+.email-aviso { padding: 10px 12px; border-radius: 10px; font-size: 0.85rem; border: 1px solid var(--border); }
+.email-aviso.ok { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.email-aviso.atencao { background: var(--warn-bg); border-color: var(--warn); }
+.email-aviso.erro { background: var(--crit-bg); border-color: var(--crit); }
+.email-anexo { border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px 10px; display: flex; gap: 8px 16px; flex-wrap: wrap; }
+.email-anexo legend { font-size: 0.8rem; font-weight: 700; padding: 0 4px; }
+.email-anexo label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.9rem; min-height: 32px; }
+.email-anexo input { width: 18px; height: 18px; accent-color: var(--accent); }
+#form-email textarea {
+  width: 100%; resize: vertical; min-height: 70px; font: inherit; padding: 8px 10px;
+  border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink);
+}
+
+/* ---- Citrus ------------------------------------------------------------------------------ */
+.citrus-wrap { position: relative; }
+.citrus-btn { position: relative; }
+.citrus-btn.ativo { background: var(--accent-bg); border-color: var(--accent); }
+.citrus-btn.ativo::after {
+  content: ""; position: absolute; inset: -4px; border-radius: inherit; border: 2px solid var(--accent);
+  animation: citrus-anel 1.4s ease-out infinite; pointer-events: none;
+}
+@keyframes citrus-anel { from { opacity: .8; transform: scale(.92); } to { opacity: 0; transform: scale(1.25); } }
+
+.citrus-panel {
+  position: fixed; right: 16px; top: 72px; z-index: 70;  /* top/right calculados pelo citrus.js a partir do botão */
+  width: min(410px, calc(100vw - 32px)); max-height: min(640px, calc(100vh - 90px));
+  display: grid; grid-template-rows: auto auto minmax(80px, 1fr) auto auto auto; gap: 10px;
+  padding: 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border-strong);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .28);
+  animation: citrus-abrir .18s ease;
+}
+.citrus-panel[hidden] { display: none; }
+@keyframes citrus-abrir { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
+.citrus-head { display: flex; align-items: center; gap: 10px; }
+.citrus-head > div { flex: 1; min-width: 0; }
+.citrus-head h2 { font-size: 1.05rem; }
+.citrus-head p { font-size: 0.75rem; color: var(--muted); }
+.citrus-avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); flex: none; }
+
+.citrus-estado {
+  display: flex; align-items: center; gap: 10px; min-height: 42px;
+  padding: 8px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border);
+  font-size: 0.85rem; font-weight: 600; color: var(--ink-2);
+}
+.citrus-estado[data-estado="ouvindo"] { border-color: var(--accent); background: var(--accent-bg); color: var(--ink); }
+.citrus-estado[data-estado="consultando"] { border-color: var(--water); }
+.citrus-onda { display: inline-flex; align-items: center; gap: 3px; height: 22px; flex: none; }
+.citrus-onda i { width: 4px; height: 6px; border-radius: 3px; background: var(--muted); opacity: .5; }
+.citrus-estado[data-estado="ouvindo"] .citrus-onda i { background: var(--accent); opacity: 1; animation: citrus-barra .9s ease-in-out infinite; }
+.citrus-estado[data-estado="falando"] .citrus-onda i { background: var(--leaf); opacity: 1; animation: citrus-barra 1.2s ease-in-out infinite; }
+.citrus-estado[data-estado="consultando"] .citrus-onda i { background: var(--water); opacity: 1; animation: citrus-ponto 1s ease-in-out infinite; }
+.citrus-onda i:nth-child(2) { animation-delay: .12s; }
+.citrus-onda i:nth-child(3) { animation-delay: .24s; }
+.citrus-onda i:nth-child(4) { animation-delay: .36s; }
+.citrus-onda i:nth-child(5) { animation-delay: .48s; }
+@keyframes citrus-barra { 0%, 100% { height: 6px; } 50% { height: 22px; } }
+@keyframes citrus-ponto { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+
+.citrus-conversa { list-style: none; margin: 0; padding: 2px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+.citrus-conversa:empty::before {
+  content: "Pergunte sobre o reservatório, os talhões, a irrigação, os alertas ou peça um relatório.";
+  color: var(--muted); font-size: 0.82rem; text-align: center; padding: 10px;
+}
+.citrus-msg { max-width: 88%; padding: 8px 12px; border-radius: 12px; font-size: 0.875rem; line-height: 1.45; animation: citrus-msg .2s ease; }
+@keyframes citrus-msg { from { opacity: 0; transform: translateY(6px); } }
+.citrus-msg.usuario { align-self: flex-end; background: var(--accent-bg); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-bottom-right-radius: 4px; }
+.citrus-msg.citrus { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--leaf); border-bottom-left-radius: 4px; }
+.citrus-msg.nao-entendi { border-left-color: var(--warn); }
+.citrus-acao { margin-top: 6px; }
+
+.citrus-sugestoes { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.citrus-sugestao {
+  flex: none; border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink-2);
+  border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 0.78rem; cursor: pointer; white-space: nowrap;
+}
+.citrus-sugestao:hover { background: var(--surface-3); color: var(--ink); }
+
+.citrus-entrada { display: flex; gap: 6px; align-items: center; }
+.citrus-entrada input {
+  flex: 1; min-width: 0; min-height: 40px; padding: 0 12px; border-radius: 10px;
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: 0.875rem;
+}
+.citrus-mic {
+  width: 44px; height: 44px; border-radius: 50%; flex: none; cursor: pointer; font-size: 1.2rem;
+  border: 2px solid var(--accent); background: var(--surface); transition: background .2s, transform .1s;
+}
+.citrus-mic:hover { background: var(--accent-bg); }
+.citrus-mic[aria-pressed="true"] { background: var(--accent); animation: citrus-pulso 1.2s ease-out infinite; }
+.citrus-mic:disabled { opacity: .45; cursor: not-allowed; border-color: var(--border-strong); }
+@keyframes citrus-pulso {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+  100% { box-shadow: 0 0 0 12px transparent; }
+}
+.citrus-opcao { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--muted); cursor: pointer; }
+.citrus-opcao input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+/* Celular: o painel vira uma folha presa na parte de baixo da tela */
+@media (max-width: 560px) {
+  .citrus-panel {
+    left: 8px; right: 8px; bottom: 8px; top: auto; width: auto;
+    max-height: calc(100vh - 80px);
+  }
+}
+
+@media print {
+  .citrus-wrap, .exp-acoes, .exp-rodape { display: none !important; }
+}

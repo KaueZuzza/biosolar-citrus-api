@@ -14,5 +14,7 @@ public enum TipoEvento {
     RESERVATORIO_ATUALIZADO,
     SIMULACAO,
     CADASTRO,
-    SISTEMA
+    SISTEMA,
+    /** Relatorio enviado por e-mail (auditoria das exportacoes feitas pelo servidor). */
+    RELATORIO
 }

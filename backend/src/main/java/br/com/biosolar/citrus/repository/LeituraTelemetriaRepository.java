@@ -20,6 +20,10 @@ public interface LeituraTelemetriaRepository extends JpaRepository<LeituraTeleme
     @Query("delete from LeituraTelemetria l where l.instante < :limite")
     int excluirAnterioresA(@Param("limite") Instant limite);
 
+    /** Amostragem uniforme do historico completo (1 leitura a cada {@code passo}) para planilhas e graficos. */
+    @Query("select l from LeituraTelemetria l where mod(l.id, :passo) = 0 order by l.id")
+    List<LeituraTelemetria> amostrar(@Param("passo") long passo);
+
     @Query("""
             select avg(l.nivelReservatorio) as medio, min(l.nivelReservatorio) as minimo,
                    max(l.nivelReservatorio) as maximo, avg(l.indice) as indiceMedio,

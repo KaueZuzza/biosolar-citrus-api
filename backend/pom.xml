@@ -23,6 +23,9 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!-- Pasta do dashboard, empacotada como conteudo estatico do Spring Boot -->
         <frontend.dir>${project.basedir}/../frontend</frontend.dir>
+        <openpdf.version>2.0.3</openpdf.version>
+        <poi.version>5.4.1</poi.version>
+        <greenmail.version>2.1.8</greenmail.version>
     </properties>
 
     <dependencies>
@@ -60,9 +63,32 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Exportacao: PDF (OpenPDF), Excel .xlsx (Apache POI) e envio por e-mail (SMTP do .env) -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>${openpdf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Servidor SMTP em memoria para testar o envio de e-mail sem credenciais reais -->
+        <dependency>
+            <groupId>com.icegreen</groupId>
+            <artifactId>greenmail-junit5</artifactId>
+            <version>${greenmail.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

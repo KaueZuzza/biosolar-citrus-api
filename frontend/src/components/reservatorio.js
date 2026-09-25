@@ -13,11 +13,19 @@ BS.componentes.reservatorio = (function () {
     t(pill, st.icone + ' ' + st.rotulo);
 
     var tanque = document.getElementById('tanque');
-    tanque.className = 'tanque ' + st.cls;
+    // "consumindo": ondas mais rápidas enquanto alguma bomba puxa água do reservatório
+    tanque.className = 'tanque ' + st.cls + (r.consumoM3h > 0 ? ' consumindo' : '');
     BS.dom.attr(tanque, 'aria-valuenow', r.nivel);
     BS.dom.attr(tanque, 'aria-valuetext', f.pct(r.nivel) + ', ' + st.rotulo);
     document.getElementById('tanque-agua').style.height = r.nivel + '%';
-    t('tanque-pct', f.pct(r.nivel));
+    var pct = document.getElementById('tanque-pct');
+    var textoPct = f.pct(r.nivel);
+    if (pct.textContent !== textoPct && pct.textContent !== '--') {
+      pct.classList.remove('mudou');
+      void pct.offsetWidth; // reinicia a animação de destaque do número
+      pct.classList.add('mudou');
+    }
+    t(pct, textoPct);
 
     t('res-volume', f.num(r.volumeM3, 0) + ' m³');
     t('res-consumo', r.consumoM3h > 0 ? f.num(r.consumoM3h, 0) + ' m³/h' : 'zero');
@@ -28,9 +36,9 @@ BS.componentes.reservatorio = (function () {
 
     // Nó central do mapa operacional
     var hub = document.getElementById('hub');
-    hub.className = 'hub-box ' + (r.bloqueioEmergencia ? 'emerg' : st.cls);
-    t('hub-nivel', f.pct(r.nivel, 0));
     var ligadas = tel.bombas.filter(function (b) { return b.ligada; }).length;
+    hub.className = 'hub-box ' + (r.bloqueioEmergencia ? 'emerg' : st.cls) + (ligadas > 0 && !r.bloqueioEmergencia ? ' fluindo' : '');
+    t('hub-nivel', f.pct(r.nivel, 0));
     t('hub-bombas', r.bloqueioEmergencia ? '🔒 bloqueio' : ligadas + '/' + tel.bombas.length + ' bombas');
   }
 

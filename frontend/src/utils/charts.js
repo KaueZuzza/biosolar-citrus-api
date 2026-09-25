@@ -13,6 +13,15 @@
     return { topo: topo, ticks: ticks };
   }
 
+  /** Anima a entrada quando o gráfico aparece (1ª vez ou ao voltar para a seção dele);
+   *  nas atualizações de cada segundo ele só é redesenhado, sem reanimar. */
+  function deveAnimar(container) {
+    var visivel = container.clientWidth > 0;
+    var animar = visivel && !container.__visivel;
+    container.__visivel = visivel;
+    return animar;
+  }
+
   function prepararContainer(container, render) {
     if (container.__preparado) return;
     container.__preparado = true;
@@ -57,6 +66,7 @@
     var x = function (i) { return m.l + i * iw / (n - 1); };
     var y = function (v) { return m.t + ih - (Math.max(yMin, Math.min(yMax, v)) - yMin) / (yMax - yMin) * ih; };
     st.geo = { x: x, y: y, n: n, m: m, W: W, H: H, iw: iw };
+    var animar = deveAnimar(container);
 
     var p = [];
     p.push('<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" aria-hidden="true" focusable="false">');
@@ -93,9 +103,9 @@
       });
       if (!d) return;
       if (cfg.area) {
-        p.push('<path d="' + d + 'L' + x(n - 1).toFixed(1) + ',' + y(yMin) + 'L' + x(0).toFixed(1) + ',' + y(yMin) + 'Z" style="fill:' + s.cor + ';fill-opacity:.10"/>');
+        p.push('<path' + (animar ? ' class="aparecer"' : '') + ' d="' + d + 'L' + x(n - 1).toFixed(1) + ',' + y(yMin) + 'L' + x(0).toFixed(1) + ',' + y(yMin) + 'Z" style="fill:' + s.cor + ';fill-opacity:.10"/>');
       }
-      p.push('<path d="' + d + '" fill="none" style="stroke:' + s.cor + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>');
+      p.push('<path' + (animar ? ' class="desenhar" pathLength="1"' : '') + ' d="' + d + '" fill="none" style="stroke:' + s.cor + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>');
     });
 
     // Rótulos finais: só quando não colidem (a legenda e o tooltip cobrem o restante)
@@ -104,7 +114,11 @@
       return { s: s, v: v, yy: v === null || v === undefined ? null : y(v) };
     }).filter(function (f) { return f.yy !== null; }).sort(function (a, b) { return a.yy - b.yy; });
     finais.forEach(function (f, idx) {
-      p.push('<circle cx="' + x(n - 1) + '" cy="' + f.yy + '" r="4" style="fill:' + f.s.cor + ';stroke:var(--chart-surface)" stroke-width="2"/>');
+      // Anel pulsando no ponto mais recente: indica que o dado é ao vivo
+      // (atraso negativo pela hora atual: o pulso continua no mesmo ritmo quando o gráfico é redesenhado)
+      p.push('<circle class="pulso-vivo" cx="' + x(n - 1) + '" cy="' + f.yy + '" r="4" style="fill:' + f.s.cor +
+        ';animation-delay:-' + Math.round(performance.now() % 1800) + 'ms"/>');
+      p.push('<circle' + (animar ? ' class="aparecer"' : '') + ' cx="' + x(n - 1) + '" cy="' + f.yy + '" r="4" style="fill:' + f.s.cor + ';stroke:var(--chart-surface)" stroke-width="2"/>');
       var colide = finais.some(function (o, j) { return j !== idx && Math.abs(o.yy - f.yy) < 13 && j < idx; });
       if (multi && !colide) {
         p.push('<text class="end-label" x="' + (x(n - 1) + 8) + '" y="' + (f.yy + 4) + '">' + esc(f.s.nome) + ' ' + BS.fmt.num(f.v, 0) + '</text>');
@@ -171,6 +185,9 @@
     var grupo = ns * larg + (ns - 1) * 2;
     var xBarra = function (c, s) { return m.l + c * banda + (banda - grupo) / 2 + s * (larg + 2); };
     st.geo = { m: m, W: W, H: H, banda: banda, n: nc, x: function (c) { return m.l + c * banda + banda / 2; } };
+    var animar = deveAnimar(container);
+    var anteriores = st.valores || {};
+    st.valores = {};
 
     var p = [];
     p.push('<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" aria-hidden="true" focusable="false">');
@@ -184,11 +201,15 @@
       cfg.series.forEach(function (s, si) {
         var v = s.valores[c] || 0;
         var bx = xBarra(c, si), h = y(0) - y(v);
+        var chave = cat + '|' + s.nome;
+        st.valores[chave] = v;
+        // Entrada: as colunas crescem a partir da base; valor que mudou: breve realce
+        var classe = animar ? 'crescer' : (chave in anteriores && anteriores[chave] !== v ? 'mudou' : '');
         if (v > 0) {
           var r = Math.min(4, larg / 2, h);
           var y0 = y(0), topo = y0 - h;
-          p.push('<path d="M' + bx + ',' + y0 + 'V' + (topo + r) + 'Q' + bx + ',' + topo + ' ' + (bx + r) + ',' + topo +
-            'H' + (bx + larg - r) + 'Q' + (bx + larg) + ',' + topo + ' ' + (bx + larg) + ',' + (topo + r) + 'V' + y0 + 'Z" style="fill:' + s.cor + '"/>');
+          p.push('<path' + (classe ? ' class="' + classe + '"' : '') + ' d="M' + bx + ',' + y0 + 'V' + (topo + r) + 'Q' + bx + ',' + topo + ' ' + (bx + r) + ',' + topo +
+            'H' + (bx + larg - r) + 'Q' + (bx + larg) + ',' + topo + ' ' + (bx + larg) + ',' + (topo + r) + 'V' + y0 + 'Z" style="fill:' + s.cor + (animar ? ';animation-delay:' + (c * 0.07).toFixed(2) + 's' : '') + '"/>');
           p.push('<text class="axis-label" x="' + (bx + larg / 2) + '" y="' + (topo - 5) + '" text-anchor="middle" style="fill:var(--ink-2);font-weight:700">' + v + '</text>');
         }
       });

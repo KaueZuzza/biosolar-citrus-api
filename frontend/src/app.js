@@ -91,9 +91,10 @@ BS.app = (function () {
     C.notificacoes.iniciar();
     C.painelSimulacao.iniciar();
     C.relatorio.iniciar();
+    C.exportacao.iniciar();
+    C.citrus.iniciar();
     C.acessibilidade.iniciar();
     C.gestao.iniciar();
-    document.getElementById('btn-voz').addEventListener('click', falarStatus);
 
     var i = BS.config.intervalos;
     laco(carregarTelemetria, i.telemetria);

@@ -57,6 +57,18 @@ biosolar:
     # Endpoints /simulacao/* existem apenas para a demonstracao. Use false para desativa-los.
     controles-demonstracao: ${BIOSOLAR_CONTROLES_DEMO:true}
     hora-inicial: 9
+  # Envio de relatorios por e-mail (feito pelo servidor). Configure no .env (ver .env.example).
+  # Sem BIOSOLAR_SMTP_HOST o envio fica desativado e o painel avisa; a senha nunca vai para o navegador.
+  email:
+    host: ${BIOSOLAR_SMTP_HOST:}
+    porta: ${BIOSOLAR_SMTP_PORTA:587}
+    usuario: ${BIOSOLAR_SMTP_USUARIO:}
+    senha: ${BIOSOLAR_SMTP_SENHA:}
+    remetente: ${BIOSOLAR_SMTP_REMETENTE:}
+    nome-remetente: ${BIOSOLAR_SMTP_NOME:BioSolar Citrus}
+    starttls: ${BIOSOLAR_SMTP_STARTTLS:true}
+    ssl: ${BIOSOLAR_SMTP_SSL:false}
+    limite-por-hora: ${BIOSOLAR_SMTP_LIMITE_HORA:20}
 
 logging:
   level:

@@ -59,35 +59,21 @@ BS.componentes.relatorio = (function () {
     }
   }
 
-  function imprimir() {
-    if (!atual) return;
-    var area = document.getElementById('area-impressao') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'area-impressao' }));
-    area.innerHTML = '<h1>🍊☀️ BioSolar Citrus: Relatório Operacional</h1>' + document.getElementById('relatorio-corpo').innerHTML;
-    document.body.classList.add('imprimindo');
-    window.addEventListener('afterprint', function limpar() {
-      window.removeEventListener('afterprint', limpar);
-      document.body.classList.remove('imprimindo');
-    });
-    window.print();
-  }
-
   function iniciar() {
     document.getElementById('btn-relatorio').addEventListener('click', abrir);
-    document.getElementById('rel-imprimir').addEventListener('click', imprimir);
     document.getElementById('rel-csv').setAttribute('href', BS.relatorioService.urlCsv());
-    document.getElementById('rel-whatsapp').addEventListener('click', function () {
-      if (atual) window.open('https://wa.me/?text=' + encodeURIComponent(atual.resumoTexto), '_blank', 'noopener');
-    });
+    // PDF, Excel, WhatsApp e e-mail do rodapé são tratados por BS.componentes.exportacao ([data-exportar])
     document.getElementById('rel-copiar').addEventListener('click', async function () {
-      if (!atual) return;
       try {
-        await navigator.clipboard.writeText(atual.resumoTexto);
+        var r = await BS.exportacaoService.whatsapp();
+        if (!r.ok) throw new Error();
+        await navigator.clipboard.writeText(r.dados.texto);
         BS.toast({ severidade: 'SUCESSO', titulo: 'Resumo copiado', descricao: ' Cole em qualquer aplicativo de mensagens.' });
       } catch (e) {
-        BS.toast({ severidade: 'ATENCAO', titulo: 'Não foi possível copiar', descricao: ' Use o botão do WhatsApp ou o CSV.' });
+        BS.toast({ severidade: 'ATENCAO', titulo: 'Não foi possível copiar', descricao: ' Use o botão do WhatsApp ou exporte o PDF.' });
       }
     });
   }
 
-  return { iniciar: iniciar };
+  return { iniciar: iniciar, abrir: abrir };
 })();

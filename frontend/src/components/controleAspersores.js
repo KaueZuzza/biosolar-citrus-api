@@ -47,7 +47,7 @@ BS.componentes.controleAspersores = (function () {
     var li = document.createElement('li');
     li.className = 'controle-item';
     li.setAttribute('data-id', x.id);
-    li.innerHTML = '<div><div class="nome" data-nome></div><div class="estado" data-estado></div></div>' +
+    li.innerHTML = '<div><div class="nome" data-nome></div><div class="estado"><span data-estado></span> <span class="muted num" data-umid></span></div></div>' +
       '<button class="btn" type="button" data-acao></button>';
     return li;
   }
@@ -84,12 +84,14 @@ BS.componentes.controleAspersores = (function () {
       if (!item) return;
       BS.dom.html(item.querySelector('[data-nome]'), (x.cultura === 'LIMAO' ? '🍋 ' : '🍊 ') + f.esc(x.nome) +
         ' <span class="muted small">· ' + f.esc(x.bombaId) + '</span>');
+      item.classList.toggle('ligado', x.aspersorLigado);
       var estado;
-      if (x.aspersorLigado) estado = '<span class="pill ok">🟢 LIGADO</span> <span class="muted">' + BS.status.modo[x.modoAcionamento] + '</span>';
+      if (x.aspersorLigado) estado = '<span class="pill ok"><span class="aspersor-ic" aria-hidden="true">✳</span>LIGADO</span> <span class="muted">' + BS.status.modo[x.modoAcionamento] + '</span>';
       else if (bloqueio) estado = '<span class="pill emerg">🔒 BLOQUEADO</span>';
       else estado = '<span class="pill neutral">⚪ DESLIGADO</span>';
-      estado += ' <span class="muted num">· 💧 ' + f.pct(x.umidade) + '</span>';
+      // A umidade fica num elemento separado: atualizá-la não recria o ícone girando
       BS.dom.html(item.querySelector('[data-estado]'), estado);
+      BS.dom.texto(item.querySelector('[data-umid]'), '· 💧 ' + f.pct(x.umidade));
 
       var botao = item.querySelector('[data-acao]');
       var ligar = !x.aspersorLigado;

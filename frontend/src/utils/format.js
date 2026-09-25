@@ -83,6 +83,7 @@
       RESERVATORIO_ATUALIZADO: '📉',
       SIMULACAO: '🎬',
       CADASTRO: '🗂️',
+      RELATORIO: '📤',
       SISTEMA: '⚙️'
     },
     modo: {

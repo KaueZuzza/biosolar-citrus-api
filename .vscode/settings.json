@@ -2,5 +2,9 @@
   // Recompila automaticamente quando o pom.xml muda (sem perguntar)
   "java.configuration.updateBuildConfiguration": "automatic",
   // O .env tem o formato CHAVE=valor (propriedades)
-  "files.associations": { ".env": "properties", ".env.example": "properties" }
+  "files.associations": {
+    ".env": "properties",
+    ".env.example": "properties"
+  },
+  "java.compile.nullAnalysis.mode": "automatic"
 }

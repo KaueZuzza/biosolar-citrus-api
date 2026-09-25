@@ -48,10 +48,18 @@ body.carregando { overflow: hidden; }
   display: flex; flex-direction: column; align-items: center; gap: 12px;
   text-align: center;
 }
-.carregamento-logo { animation: girar-sol 8s linear infinite; }
-@keyframes girar-sol { to { transform: rotate(360deg); } }
-.carregamento-marca { font-size: 1.6rem; font-weight: 850; letter-spacing: -.01em; }
-.carregamento-marca span { color: var(--accent); }
+/* Logo com fundo transparente */
+.carregamento-logo { animation: logo-respirar 3.2s ease-in-out infinite; }
+.carregamento-logo img { display: block; width: 190px; height: auto; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .18)); }
+/* Tema escuro: um leve contorno claro mantém o verde-escuro de "BIO" e "CITRUS" legível */
+:root[data-theme="dark"] .carregamento-logo img { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .9)) drop-shadow(0 0 6px rgba(255, 255, 255, .25)); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .carregamento-logo img { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .9)) drop-shadow(0 0 6px rgba(255, 255, 255, .25)); }
+}
+@keyframes logo-respirar {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.03); }
+}
 .carregamento-titulo { color: var(--ink-2); font-weight: 600; }
 .carregamento-barra { width: 100%; height: 6px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
 .carregamento-barra i { display: block; width: 35%; height: 100%; border-radius: 99px; background: var(--accent); animation: barra 1.3s ease-in-out infinite; }
@@ -66,6 +74,15 @@ body.carregando { overflow: hidden; }
   background: var(--surface); border: 1px solid var(--border);
   font-size: 0.9rem; color: var(--ink-2);
 }
+.carregamento-passos li { transition: opacity .35s ease, transform .35s ease, border-color .3s, background .3s; }
+.carregamento-passos li[data-estado="aguardando"] { opacity: .45; }
+.carregamento-passos li[data-estado="andamento"] { opacity: 1; border-color: var(--accent); transform: translateX(4px); }
+.carregamento-passos li[data-estado="andamento"] .ic { display: inline-block; animation: girar 1.2s linear infinite; }
+.carregamento-passos li[data-estado="ok"] .ic, .carregamento-passos li[data-estado="aviso"] .ic { animation: confirmar .4s cubic-bezier(.3, 1.6, .5, 1); display: inline-block; }
+@keyframes confirmar { from { transform: scale(.3); } }
+/* Barra com progresso real (etapas concluídas) */
+.carregamento-barra.determinada i { width: var(--progresso, 0%); transform: none; animation: none; transition: width .6s ease; }
+.carregamento-pct { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: -6px; }
 .carregamento-passos li[data-estado="ok"] { color: var(--ink); border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
 .carregamento-passos li[data-estado="aviso"] { color: var(--ink); border-color: var(--warn); background: var(--warn-bg); }
 .carregamento-passos li[data-estado="erro"] { color: var(--ink); border-color: var(--crit); background: var(--crit-bg); }
@@ -201,8 +218,113 @@ fieldset.form-grid { border-top: 1px solid var(--border); padding-top: 10px; }
   .form-grid { grid-template-columns: 1fr; }
 }
 
-/* ---- Movimento reduzido também nos novos elementos ---- */
-@media (prefers-reduced-motion: reduce) {
-  .carregamento-logo, .carregamento-barra i { animation: none !important; }
+/* ---- Logo no cabeçalho ------------------------------------------------------------ */
+.brand-logo { flex: none; display: inline-flex; transition: transform .3s ease; }
+.brand-logo img { display: block; width: 48px; height: 48px; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .18)); }
+.brand:hover .brand-logo { transform: rotate(-6deg) scale(1.08); }
+@media (max-width: 560px) { .brand-logo img { width: 38px; height: 38px; } }
+
+/* ================================================================================
+ * ANIMAÇÕES
+ * Controladas SOMENTE pela opção "Reduzir animações" da Central de Acessibilidade
+ * (atributo data-motion="reduzido"). Não dependem mais da configuração do Windows,
+ * que desligava tudo quando os "Efeitos de animação" do sistema estavam desativados.
+ * ================================================================================ */
+
+/* Troca de seção: os cartões entram em sequência */
+.aba:not([hidden]) > * { animation: surgir .45s cubic-bezier(.2, .7, .2, 1) both; }
+.aba:not([hidden]) > *:nth-child(2) { animation-delay: .06s; }
+.aba:not([hidden]) > *:nth-child(3) { animation-delay: .12s; }
+.aba:not([hidden]) > *:nth-child(4) { animation-delay: .18s; }
+.aba:not([hidden]) > *:nth-child(n+5) { animation-delay: .24s; }
+@keyframes surgir { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/* ---- Reservatório: duas ondas, bolhas e vazão ---- */
+.tanque-agua::after {
+  content: ""; position: absolute; left: -50%; top: -6px; width: 200%; height: 14px;
+  background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--water) 40%, #fff) 45%, transparent 47%) 0 0 / 56px 14px repeat-x;
+  animation: onda-2 4.6s linear infinite reverse;
+  opacity: .55;
 }
-:root[data-motion="reduzido"] .carregamento-logo, :root[data-motion="reduzido"] .carregamento-barra i { animation: none !important; }
+@keyframes onda-2 { to { transform: translateX(56px); } }
+.tanque-agua::before { animation-duration: 2.6s; }
+.tanque.consumindo .tanque-agua::before { animation-duration: 1.3s; }
+.tanque.consumindo .tanque-agua::after { animation-duration: 2.2s; }
+.bolhas { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.bolhas i {
+  position: absolute; bottom: -10px; width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(255, 255, 255, .55); box-shadow: inset -1px -1px 0 rgba(255, 255, 255, .5);
+  animation: bolha 4s ease-in infinite;
+}
+.bolhas i:nth-child(1) { left: 16%; animation-delay: 0s; }
+.bolhas i:nth-child(2) { left: 38%; width: 5px; height: 5px; animation-delay: 1.3s; animation-duration: 3.4s; }
+.bolhas i:nth-child(3) { left: 60%; animation-delay: 2.1s; animation-duration: 4.6s; }
+.bolhas i:nth-child(4) { left: 78%; width: 4px; height: 4px; animation-delay: .7s; animation-duration: 3s; }
+.bolhas i:nth-child(5) { left: 28%; width: 5px; height: 5px; animation-delay: 2.8s; }
+@keyframes bolha {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15% { opacity: 1; }
+  50% { transform: translate(3px, -120px); }
+  100% { transform: translate(-2px, -260px); opacity: 0; }
+}
+/* Nível mudando: a água sobe/desce com leve "balanço" */
+.tanque-agua { transition: height 1.1s cubic-bezier(.3, 1.3, .5, 1), background .4s; }
+.tanque-pct.mudou { animation: pulso-num .6s ease; }
+@keyframes pulso-num { 40% { transform: scale(1.12); } }
+/* Bomba em uso: o nó central do mapa "pulsa" água */
+.hub-box.fluindo { animation: pulso-agua 2s ease-out infinite; }
+@keyframes pulso-agua {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--water) 45%, transparent); }
+  100% { box-shadow: 0 0 0 14px transparent; }
+}
+
+/* ---- Irrigação: jato de água nos talhões e nos controles ---- */
+.talhao.irrigando::after {
+  content: ""; position: absolute; inset: 4px 0 auto 0; height: 70%; pointer-events: none;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--water) 55%, transparent) 1.4px, transparent 2px) 0 0 / 22px 26px,
+    radial-gradient(circle, color-mix(in srgb, var(--water) 40%, transparent) 1.2px, transparent 1.8px) 11px 13px / 22px 26px;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  animation: chuva 1.1s linear infinite;
+  opacity: .8;
+}
+@keyframes chuva { to { background-position: 0 26px, 11px 39px; } }
+.talhao.irrigando .talhao-umid .v { animation: brilho-agua 2.4s ease-in-out infinite; }
+@keyframes brilho-agua { 50% { color: var(--water); } }
+.talhao.bloqueado::after { content: none; }
+
+.controle-item { position: relative; overflow: hidden; transition: border-color .3s, box-shadow .3s; }
+.controle-item.ligado { border-color: var(--water); box-shadow: 0 0 0 3px color-mix(in srgb, var(--water) 18%, transparent); }
+.controle-item.ligado::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: repeating-linear-gradient(180deg, var(--water) 0 8px, color-mix(in srgb, var(--water) 30%, transparent) 8px 16px);
+  background-size: 4px 32px;
+  animation: fluxo-v .8s linear infinite;
+}
+@keyframes fluxo-v { to { background-position: 0 32px; } }
+.aspersor-ic { display: inline-block; margin-right: 4px; }
+.controle-item.ligado .aspersor-ic { animation: girar 1.6s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+
+/* Barras e medidores com transição mais suave */
+.umid-bar > i, .meter > i { transition: width .9s cubic-bezier(.3, 1.2, .5, 1); }
+
+/* ---- Gráficos ---- */
+.chart .desenhar { stroke-dasharray: 1; animation: desenhar-linha 1.4s cubic-bezier(.4, 0, .2, 1) both; }
+@keyframes desenhar-linha { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.chart .aparecer { animation: aparecer .9s ease .4s both; }
+@keyframes aparecer { from { opacity: 0; } }
+.chart .crescer { transform-box: fill-box; transform-origin: 50% 100%; animation: crescer .7s cubic-bezier(.3, 1.3, .5, 1) both; }
+@keyframes crescer { from { transform: scaleY(0); } }
+.chart .mudou { animation: realce 1s ease; }
+@keyframes realce { 30% { filter: brightness(1.35); } }
+.chart .pulso-vivo { transform-box: fill-box; transform-origin: center; animation: pulso-vivo 1.8s ease-out infinite; pointer-events: none; }
+@keyframes pulso-vivo { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(3.2); opacity: 0; } }
+
+/* ---- "Reduzir animações" ligado: nenhuma animação contínua ou de entrada ---- */
+:root[data-motion="reduzido"] *,
+:root[data-motion="reduzido"] *::before,
+:root[data-motion="reduzido"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+:root[data-motion="reduzido"] .bolhas,
+:root[data-motion="reduzido"] .chart .pulso-vivo { display: none; }

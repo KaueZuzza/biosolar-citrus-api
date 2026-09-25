@@ -4,10 +4,12 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -45,6 +47,20 @@ public class ApiExceptionHandler {
     @ExceptionHandler(BancoIndisponivelException.class)
     public ResponseEntity<ErroResponse> bancoIndisponivel(BancoIndisponivelException e) {
         return resposta(HttpStatus.SERVICE_UNAVAILABLE, "BANCO_INDISPONIVEL", e.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(ExportacaoException.class)
+    public ResponseEntity<ErroResponse> exportacao(ExportacaoException e) {
+        return resposta(e.getStatus(), e.getMotivo(), e.getMessage(), List.of());
+    }
+
+    /** Banco fora do ar durante uma consulta (ex.: relatorio): a automacao continua em memoria. */
+    @ExceptionHandler({CannotCreateTransactionException.class, DataAccessResourceFailureException.class})
+    public ResponseEntity<ErroResponse> bancoForaDoAr(Exception e) {
+        log.warn("Banco indisponivel: {}", e.getMessage());
+        return resposta(HttpStatus.SERVICE_UNAVAILABLE, "BANCO_INDISPONIVEL",
+                "O banco de dados está temporariamente indisponível. A automação continua funcionando; "
+                        + "tente novamente em alguns segundos.", List.of());
     }
 
     /** Restricao do banco violada (CHECK, FK, chave duplicada): o dado nao foi gravado. */

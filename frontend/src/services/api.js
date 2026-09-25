@@ -6,10 +6,10 @@
     ouvintes.forEach(function (fn) { try { fn(estado); } catch (e) { console.error(e); } });
   }
 
-  async function requisitar(metodo, caminho, corpo) {
+  async function requisitar(metodo, caminho, corpo, opcoes) {
     var inicio = performance.now();
     var controle = new AbortController();
-    var timer = setTimeout(function () { controle.abort(); }, 8000);
+    var timer = setTimeout(function () { controle.abort(); }, (opcoes && opcoes.timeout) || 8000);
     try {
       var resposta = await fetch(BS.config.apiBase + caminho, {
         method: metodo,
@@ -33,7 +33,7 @@
 
   BS.api = {
     get: function (caminho) { return requisitar('GET', caminho); },
-    post: function (caminho, corpo) { return requisitar('POST', caminho, corpo || {}); },
+    post: function (caminho, corpo, opcoes) { return requisitar('POST', caminho, corpo || {}, opcoes); },
     put: function (caminho, corpo) { return requisitar('PUT', caminho, corpo || {}); },
     del: function (caminho) { return requisitar('DELETE', caminho); },
     url: function (caminho) { return BS.config.apiBase + caminho; },
