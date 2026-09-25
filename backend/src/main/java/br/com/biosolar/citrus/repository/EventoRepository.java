@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -22,6 +23,13 @@ public interface EventoRepository extends JpaRepository<Evento, Long> {
     List<Evento> findAllByOrderByIdAsc();
 
     long countByTipo(TipoEvento tipo);
+
+    long countByTalhaoId(String talhaoId);
+
+    /** Exclusao definitiva de um talhao: os eventos continuam no historico, sem o vinculo com o talhao. */
+    @Modifying
+    @Query("update Evento e set e.talhaoId = null where e.talhaoId = :talhaoId")
+    int desvincularTalhao(@Param("talhaoId") String talhaoId);
 
     @Query("""
             select e.talhaoId as talhaoId, e.tipo as tipo, count(e) as total

@@ -66,6 +66,10 @@ public class Reservatorio {
     @Transient
     private Double nivelUltimaAvaliacao;
 
+    /** Nivel usado ao restaurar o cenario de demonstracao (%). */
+    @Column(name = "nivel_inicial", nullable = false)
+    private double nivelInicial;
+
     protected Reservatorio() {
     }
 
@@ -79,7 +83,37 @@ public class Reservatorio {
         this.limiteRearme = 20;
         this.vazaoRecargaM3h = vazaoRecargaM3h;
         this.ultimaAtualizacao = agora;
+        this.nivelInicial = nivel;
         this.status = classificarNivel();
+    }
+
+    public CadastroReservatorio getCadastro() {
+        return new CadastroReservatorio(nome, capacidadeM3, vazaoRecargaM3h, nivelInicial, limiteAtencao,
+                limiteCritico, limiteRearme);
+    }
+
+    /** Aplica os dados cadastrais. O nivel atual continua em % da capacidade. */
+    public void aplicarCadastro(CadastroReservatorio c) {
+        this.nome = c.nome();
+        this.capacidadeM3 = c.capacidadeM3();
+        this.vazaoRecargaM3h = c.vazaoRecargaM3h();
+        this.nivelInicial = c.nivelInicial();
+        this.limiteAtencao = c.limiteAtencao();
+        this.limiteCritico = c.limiteCritico();
+        this.limiteRearme = c.limiteRearme();
+    }
+
+    /** Volta ao nivel inicial cadastrado, sem bloqueio (restauracao do cenario). */
+    public void reiniciarOperacao(Instant agora) {
+        this.nivel = nivelInicial;
+        this.bloqueioEmergencia = false;
+        this.status = classificarNivel();
+        this.nivelUltimaAvaliacao = nivelInicial;
+        this.ultimaAtualizacao = agora;
+    }
+
+    public double getNivelInicial() {
+        return nivelInicial;
     }
 
     public StatusReservatorio classificarNivel() {

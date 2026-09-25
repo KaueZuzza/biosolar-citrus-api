@@ -13,5 +13,6 @@ public enum TipoEvento {
     ALERTA_RESERVATORIO,
     RESERVATORIO_ATUALIZADO,
     SIMULACAO,
+    CADASTRO,
     SISTEMA
 }

@@ -25,7 +25,9 @@ spring:
   web:
     resources:
       # ../frontend primeiro: editar o dashboard nao exige rebuild durante o desenvolvimento
-      static-locations: file:../frontend/, classpath:/static/
+      # "../frontend" quando a API roda a partir de backend/ (scripts, F5 no VS Code); "./frontend" quando roda a
+      # partir da raiz do projeto (botao Run do VS Code). Sem nenhum dos dois, usa a copia empacotada no jar.
+      static-locations: file:../frontend/, file:./frontend/, classpath:/static/
       # O navegador sempre revalida o dashboard: evita exibir arquivos antigos apos uma atualizacao (git pull)
       cache:
         cachecontrol:
@@ -50,6 +52,8 @@ biosolar:
     registrar-leitura-a-cada-ticks: 2
     # Leituras de telemetria (graficos) mais antigas que isso sao removidas; o historico de EVENTOS e mantido
     retencao-leituras-horas: 24
+    # Intervalo para trazer a automacao o cadastro alterado diretamente no banco (ex.: pelo pgAdmin)
+    sincronizacao-cadastro-ms: 5000
     # Endpoints /simulacao/* existem apenas para a demonstracao. Use false para desativa-los.
     controles-demonstracao: ${BIOSOLAR_CONTROLES_DEMO:true}
     hora-inicial: 9

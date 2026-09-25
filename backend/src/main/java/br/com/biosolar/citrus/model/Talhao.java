@@ -92,7 +92,24 @@ public class Talhao {
     @Column(name = "ultimo_acionamento")
     private Instant ultimoAcionamento;
 
+    /** Umidade usada ao restaurar o cenario de demonstracao. */
+    @Column(name = "umidade_inicial", nullable = false)
+    private double umidadeInicial;
+
+    /** Talhao arquivado (excluido da operacao) continua no banco para preservar o historico. */
+    @Column(nullable = false)
+    private boolean ativo = true;
+
     protected Talhao() {
+    }
+
+    /** Novo talhao cadastrado pela interface: comeca com a umidade inicial e o aspersor desligado. */
+    public Talhao(String id, CadastroTalhao cadastro, Instant agora) {
+        this.id = id;
+        aplicarCadastro(cadastro);
+        this.umidade = cadastro.umidadeInicial();
+        this.ultimaAtualizacao = agora;
+        this.status = classificarUmidade();
     }
 
     public Talhao(String id, Cultura cultura, String variedade, String solo, double areaHa, int plantas,
@@ -113,6 +130,55 @@ public class Talhao {
         this.ganhoIrrigacao = 7.0;
         this.vazaoBombaM3h = 18.0;
         this.potenciaBombaKw = 5.5;
+        this.umidadeInicial = umidade;
+        this.ultimaAtualizacao = agora;
+        this.status = classificarUmidade();
+    }
+
+    // ---- Cadastro -------------------------------------------------------------------------------
+
+    public CadastroTalhao getCadastro() {
+        return new CadastroTalhao(nome, cultura, variedade, solo, areaHa, plantas, prioridade, umidadeInicial,
+                limiteCritico, limiteAtencao, umidadeAlvo, taxaEvapotranspiracao, ganhoIrrigacao, vazaoBombaM3h,
+                potenciaBombaKw);
+    }
+
+    /** Aplica os dados cadastrais; o estado operacional (umidade atual, aspersor) nao e alterado. */
+    public void aplicarCadastro(CadastroTalhao c) {
+        this.nome = c.nome();
+        this.cultura = c.cultura();
+        this.variedade = c.variedade();
+        this.solo = c.solo();
+        this.areaHa = c.areaHa();
+        this.plantas = c.plantas();
+        this.prioridade = c.prioridade();
+        this.umidadeInicial = c.umidadeInicial();
+        this.limiteCritico = c.limiteCritico();
+        this.limiteAtencao = c.limiteAtencao();
+        this.umidadeAlvo = c.umidadeAlvo();
+        this.taxaEvapotranspiracao = c.taxaEvapotranspiracao();
+        this.ganhoIrrigacao = c.ganhoIrrigacao();
+        this.vazaoBombaM3h = c.vazaoBombaM3h();
+        this.potenciaBombaKw = c.potenciaBombaKw();
+    }
+
+    /** Volta a umidade inicial cadastrada, com o aspersor desligado (restauracao do cenario). */
+    public void reiniciarOperacao(Instant agora) {
+        this.umidade = umidadeInicial;
+        this.aspersorLigado = false;
+        this.modoAcionamento = ModoAcionamento.DESLIGADO;
+        this.irrigacaoBloqueada = false;
+        this.ultimoAcionamento = null;
+        this.ultimaAtualizacao = agora;
+        this.status = classificarUmidade();
+    }
+
+    /** Talhao que entra (ou volta) na operacao: aspersor desligado e status recalculado. */
+    public void prepararParaOperacao(Instant agora) {
+        if (aspersorLigado) {
+            desligarAspersor(agora);
+        }
+        this.irrigacaoBloqueada = false;
         this.ultimaAtualizacao = agora;
         this.status = classificarUmidade();
     }
@@ -258,5 +324,21 @@ public class Talhao {
 
     public Instant getUltimoAcionamento() {
         return ultimoAcionamento;
+    }
+
+    public String getSensorId() {
+        return "SU-" + id;
+    }
+
+    public double getUmidadeInicial() {
+        return umidadeInicial;
+    }
+
+    public boolean isAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(boolean ativo) {
+        this.ativo = ativo;
     }
 }

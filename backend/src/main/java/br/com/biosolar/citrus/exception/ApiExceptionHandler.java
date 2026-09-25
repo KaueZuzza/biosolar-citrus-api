@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -31,6 +32,29 @@ public class ApiExceptionHandler {
         return resposta(HttpStatus.FORBIDDEN, "OPERACAO_NAO_PERMITIDA", e.getMessage(), List.of());
     }
 
+    @ExceptionHandler(ConflitoException.class)
+    public ResponseEntity<ErroResponse> conflito(ConflitoException e) {
+        return resposta(HttpStatus.CONFLICT, "CONFLITO", e.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(DadosInvalidosException.class)
+    public ResponseEntity<ErroResponse> dadosInvalidos(DadosInvalidosException e) {
+        return resposta(HttpStatus.BAD_REQUEST, "REQUISICAO_INVALIDA", e.getMessage(), e.getDetalhes());
+    }
+
+    @ExceptionHandler(BancoIndisponivelException.class)
+    public ResponseEntity<ErroResponse> bancoIndisponivel(BancoIndisponivelException e) {
+        return resposta(HttpStatus.SERVICE_UNAVAILABLE, "BANCO_INDISPONIVEL", e.getMessage(), List.of());
+    }
+
+    /** Restricao do banco violada (CHECK, FK, chave duplicada): o dado nao foi gravado. */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErroResponse> integridade(DataIntegrityViolationException e) {
+        log.warn("Restricao do banco violada: {}", e.getMostSpecificCause().getMessage());
+        return resposta(HttpStatus.CONFLICT, "RESTRICAO_DO_BANCO",
+                "Os dados violam uma regra de integridade do banco e não foram gravados.", List.of());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErroResponse> validacao(MethodArgumentNotValidException e) {
         List<String> detalhes = e.getBindingResult().getFieldErrors().stream()
@@ -42,7 +66,8 @@ public class ApiExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErroResponse> corpoInvalido(HttpMessageNotReadableException e) {
         return resposta(HttpStatus.BAD_REQUEST, "JSON_INVALIDO",
-                "Corpo da requisição ausente ou malformado. Exemplo: {\"talhaoId\": \"A\", \"ligado\": true}",
+                "Corpo da requisição ausente ou malformado. Verifique o JSON e os valores dos campos "
+                        + "(ex.: {\"talhaoId\": \"A\", \"ligado\": true}).",
                 List.of());
     }
 

@@ -77,8 +77,13 @@ public class Evento {
      * ficado com o id gerado pelo banco (IDENTITY); regrava-lo faria um merge de uma linha inexistente.
      */
     public Evento copiaParaNovaTentativa() {
-        return new Evento(instante, horaSimulada, tipo, severidade, origem, regra, talhaoId, titulo, descricao,
-                nivelReservatorio);
+        return copiaParaNovaTentativa(true);
+    }
+
+    /** @param manterTalhao false quando o talhao referenciado deixou de existir no banco */
+    public Evento copiaParaNovaTentativa(boolean manterTalhao) {
+        return new Evento(instante, horaSimulada, tipo, severidade, origem, regra, manterTalhao ? talhaoId : null,
+                titulo, descricao, nivelReservatorio);
     }
 
     public Long getId() {

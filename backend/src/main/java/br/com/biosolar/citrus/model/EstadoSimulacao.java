@@ -56,6 +56,22 @@ public class EstadoSimulacao {
         this.iniciadaEm = agora;
     }
 
+    /** Reinicia relogio, velocidade e acumuladores (restauracao do cenario). A usina cadastrada e mantida. */
+    public void reiniciar(LocalDateTime relogioSimulado, Instant agora) {
+        this.relogioSimulado = relogioSimulado;
+        this.fatorVelocidade = 1;
+        this.pausada = false;
+        this.ticks = 0;
+        this.energiaConsumidaKwh = 0;
+        this.energiaSolarKwh = 0;
+        this.aguaConsumidaM3 = 0;
+        this.iniciadaEm = agora;
+    }
+
+    public void setPotenciaSolarPicoKw(double potenciaSolarPicoKw) {
+        this.potenciaSolarPicoKw = potenciaSolarPicoKw;
+    }
+
     public void acumular(double energiaKwh, double solarKwh, double aguaM3) {
         this.energiaConsumidaKwh += energiaKwh;
         this.energiaSolarKwh += solarKwh;

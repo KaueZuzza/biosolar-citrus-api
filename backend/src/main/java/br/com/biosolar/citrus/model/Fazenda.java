@@ -56,6 +56,31 @@ public class Fazenda {
         return List.copyOf(eventosPendentes);
     }
 
+    /** Descarta eventos ainda nao gravados (restauracao do cenario: o historico recomeca do zero). */
+    public void descartarEventosPendentes() {
+        eventosPendentes.clear();
+    }
+
+    // ---- Cadastro -------------------------------------------------------------------------------
+
+    /** Inclui um talhao na operacao (cadastro pela interface ou pelo banco). */
+    public void adicionarTalhao(Talhao talhao) {
+        talhoes.add(talhao);
+        talhoes.sort(Comparator.comparing(Talhao::getId));
+    }
+
+    /** Retira um talhao da operacao, desligando a bomba se estiver ligada. */
+    public Optional<Talhao> removerTalhao(String id, Instant agora) {
+        Optional<Talhao> talhao = talhoes.stream().filter(t -> t.getId().equals(id)).findFirst();
+        talhao.ifPresent(t -> {
+            if (t.isAspersorLigado()) {
+                t.desligarAspersor(agora);
+            }
+            talhoes.remove(t);
+        });
+        return talhao;
+    }
+
     // ---- Consultas ------------------------------------------------------------------------------
 
     public Optional<Talhao> buscarTalhao(String id) {
