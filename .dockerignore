@@ -1,0 +1,12 @@
+# Nunca levar credenciais locais, builds ou dados para a imagem
+.env
+.env.*
+.git
+.vscode
+.idea
+backend/target
+backend/data
+backups
+pgdata
+*.log
+*.dump

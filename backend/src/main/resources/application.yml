@@ -6,7 +6,8 @@ spring:
     # do sistema continuam tendo prioridade. "./" cobre a execucao a partir da raiz; "../", a partir de backend/.
     import: "optional:file:./.env[.properties],optional:file:../.env[.properties]"
   datasource:
-    url: ${BIOSOLAR_DB_URL:jdbc:postgresql://localhost:5432/biosolar}
+    # BIOSOLAR_DB_URL tem prioridade; sem ela, a URL e montada por partes (hospedagem como o Render, ver render.yaml)
+    url: ${BIOSOLAR_DB_URL:jdbc:postgresql://${BIOSOLAR_DB_HOST:localhost}:${BIOSOLAR_DB_PORTA:5432}/${BIOSOLAR_DB_NOME:biosolar}}
     username: ${BIOSOLAR_DB_USUARIO:biosolar}
     password: ${BIOSOLAR_DB_SENHA:biosolar}
     hikari:
@@ -35,6 +36,10 @@ spring:
 
 server:
   port: ${PORT:8080}
+  # Atras de um proxy HTTPS (link publico: Cloudflare Tunnel, Render...) usa os cabecalhos X-Forwarded-* para
+  # reconhecer o endereco publico como a mesma origem do dashboard; sem isso o CORS recusa os POST do painel.
+  # O Tomcat so aceita esses cabecalhos vindos de proxies internos (localhost/rede privada).
+  forward-headers-strategy: native
   compression:
     enabled: true
 

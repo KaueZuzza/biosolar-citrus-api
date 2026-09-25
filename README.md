@@ -375,6 +375,29 @@ temas e talhão das perguntas, agente sem internet). Os testes nunca acessam a i
 | `backups/` | Dumps e cópias locais de segurança |
 | Logs, temporários e configurações de IDE | Específicos de cada computador |
 
+## Publicar com um link público
+
+**Hospedagem fixa (Render, plano gratuito).** O repositório já traz `Dockerfile` e `render.yaml`:
+
+1. Em https://render.com, entre com a conta do GitHub.
+2. **New → Blueprint** e escolha o repositório `biosolar-citrus-api`.
+3. O Render cria o PostgreSQL 17 e a API. A senha do banco é gerada por ele, e o Flyway cria as tabelas.
+   Se quiser e-mail, preencha os campos `BIOSOLAR_SMTP_*` (em branco = envio desativado).
+4. Aguarde o primeiro build (alguns minutos). O link fica como `https://biosolar-citrus.onrender.com`.
+
+No plano gratuito a API "dorme" após 15 min sem acesso (o primeiro acesso depois disso leva cerca de 1 min)
+e o banco gratuito expira em 30 dias.
+
+**Link temporário a partir do próprio computador** (sem conta, vale enquanto o PC e o comando estiverem ligados),
+com a API já rodando:
+
+```powershell
+cloudflared tunnel --url http://localhost:8080
+```
+
+O comando mostra um endereço `https://….trycloudflare.com`. Atrás desses proxies HTTPS, a API usa os
+cabeçalhos `X-Forwarded-*` (`server.forward-headers-strategy: native`) para reconhecer o endereço público.
+
 ## Segurança e configuração
 
 - **Credenciais:** `biosolar`/`biosolar` e `postgres`/`postgres` são **credenciais de desenvolvimento local**,
@@ -391,6 +414,7 @@ temas e talhão das perguntas, agente sem internet). Os testes nunca acessam a i
 | Variável (`.env`) | Padrão |
 |---|---|
 | `BIOSOLAR_DB_URL` | `jdbc:postgresql://localhost:5432/biosolar` |
+| `BIOSOLAR_DB_HOST` / `BIOSOLAR_DB_PORTA` / `BIOSOLAR_DB_NOME` | usados só sem `BIOSOLAR_DB_URL` (hospedagem) |
 | `BIOSOLAR_DB_USUARIO` / `BIOSOLAR_DB_SENHA` | `biosolar` / `biosolar` |
 | `BIOSOLAR_PG_SUPER_SENHA` | `postgres` (apenas o cluster portátil) |
 | `BIOSOLAR_CORS_ORIGENS` | `http://localhost:[*],http://127.0.0.1:[*],null` |

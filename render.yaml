@@ -1,0 +1,51 @@
+# BioSolar Citrus no Render (https://render.com): Dashboard > New > Blueprint > escolher este repositorio.
+# Cria a API (Docker) e um PostgreSQL 17 gerenciado; o Flyway cria as tabelas na primeira inicializacao.
+# Nenhuma senha fica aqui: a do banco e gerada pelo Render e as de e-mail sao digitadas no painel do Render.
+services:
+  - type: web
+    name: biosolar-citrus
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /saude
+    envVars:
+      - key: BIOSOLAR_DB_HOST
+        fromDatabase:
+          name: biosolar-db
+          property: host
+      - key: BIOSOLAR_DB_PORTA
+        fromDatabase:
+          name: biosolar-db
+          property: port
+      - key: BIOSOLAR_DB_NOME
+        fromDatabase:
+          name: biosolar-db
+          property: database
+      - key: BIOSOLAR_DB_USUARIO
+        fromDatabase:
+          name: biosolar-db
+          property: user
+      - key: BIOSOLAR_DB_SENHA
+        fromDatabase:
+          name: biosolar-db
+          property: password
+      - key: BIOSOLAR_CONTROLES_DEMO
+        value: "true"
+      # E-mail (opcional): preencha no Render. Vazio = envio desativado, o painel avisa.
+      - key: BIOSOLAR_SMTP_HOST
+        sync: false
+      - key: BIOSOLAR_SMTP_USUARIO
+        sync: false
+      - key: BIOSOLAR_SMTP_SENHA
+        sync: false
+      - key: BIOSOLAR_SMTP_REMETENTE
+        sync: false
+
+databases:
+  - name: biosolar-db
+    plan: free
+    region: virginia
+    databaseName: biosolar
+    user: biosolar
+    postgresMajorVersion: "17"
